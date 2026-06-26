@@ -22,6 +22,7 @@ static int removerFilho(Diretorio *dir, int id)
 {
     int pos = -1;
 
+    // Procura em qual posição do array 'filhos' o ID está
     for (int i = 0; i < dir->qtdFilhos; i++)
     {
         if (dir->filhos[i] == id)
@@ -31,14 +32,20 @@ static int removerFilho(Diretorio *dir, int id)
         }
     }
 
+    // Se não achou o arquivo nesse diretório, retorna erro
     if (pos == -1)
         return -1;
 
+    // Desloca todos os filhos seguintes uma posição para trás
     for (int i = pos; i < dir->qtdFilhos - 1; i++)
     {
         dir->filhos[i] = dir->filhos[i + 1];
     }
 
+    // Opcional: limpa a última posição que sobrou para não deixar lixo
+    dir->filhos[dir->qtdFilhos - 1] = -1;
+
+    // Diminui a quantidade de filhos do diretório
     dir->qtdFilhos--;
 
     return 0;
@@ -47,9 +54,13 @@ static int removerFilho(Diretorio *dir, int id)
 static int inserirFilho(Diretorio *dir, int id)
 {
     if (dir->qtdFilhos >= MAX_FILHOS)
-        return -1;
+    {
+        return -1; // Diretório cheio
+    }
 
-    dir->filhos[dir->qtdFilhos++] = id;
+    // Insere o ID na próxima posição disponível
+    dir->filhos[dir->qtdFilhos] = id;
+    dir->qtdFilhos++;
 
     return 0;
 }
@@ -538,57 +549,66 @@ int renomear(
 
 int mover(SistemaDeArquivos *fs, char nome[], char destino[])
 {
-    int atual = fs->diretorioAtual;
+    int diretorioOriginal = fs->diretorioAtual;
 
-    // Procura o arquivo/diretório que será movido
-    int id = procurarFilho(fs, atual, nome);
-
-    if (id == -1)
+    // 1. Procura o arquivo/diretório que será movido no diretório atual
+    int idParaMover = procurarFilho(fs, diretorioOriginal, nome);
+    if (idParaMover == -1)
     {
-        printf("Erro! Arquivo ou diretorio nao encontrado.\n");
+        printf("Erro! Arquivo ou diretorio '%s' nao encontrado aqui.\n", nome);
         return -1;
     }
 
-    // Procura o diretório de destino
-    int novoPai = procurarFilho(fs, atual, destino);
-
-    if (novoPai == -1)
+    // 2. "Viaja" temporariamente para o diretório de destino para validar se ele existe
+    // Se o destino for "..", entrarDiretorio vai subir um nível corretamente.
+    if (entrarDiretorio(fs, destino) == -1)
     {
-        printf("Erro! Diretorio de destino inexistente.\n");
+        printf("Erro! O destino '%s' nao e um diretorio valido ou nao existe.\n", destino);
+        fs->diretorioAtual = diretorioOriginal; // Garante que não ficamos perdidos
         return -1;
     }
 
-    if (fs->inodes[novoPai].tipo != DIRETORIO)
+    int novoPai = fs->diretorioAtual; // Este é o ID do diretório de destino
+
+    // Ignora a tentativa de mover um diretório para dentro dele mesmo
+    if (idParaMover == novoPai)
     {
-        printf("Erro! O destino nao e um diretorio.\n");
+        printf("Erro! Nao e possivel mover um diretorio para dentro dele mesmo.\n");
+        fs->diretorioAtual = diretorioOriginal;
         return -1;
     }
 
-    // Verifica se já existe um arquivo/diretório com o mesmo nome no destino
+    // 3. Verifica se já existe algo com o mesmo nome lá no destino
     if (procurarFilho(fs, novoPai, nome) != -1)
     {
-        printf("Erro! Ja existe um item com esse nome no diretorio de destino.\n");
+        printf("Erro! Ja existe um item com o nome '%s' no destino.\n", nome);
+        fs->diretorioAtual = diretorioOriginal; // Volta ao normal
         return -1;
     }
 
-    // Remove do diretório atual
-    Diretorio *origem = &fs->diretorios[atual];
+    // 4. Volta ao diretório original para fazer a remoção de forma segura
+    fs->diretorioAtual = diretorioOriginal;
+
+    Diretorio *origem = &fs->diretorios[diretorioOriginal];
     Diretorio *dest = &fs->diretorios[novoPai];
 
-    if (removerFilho(origem, id) == -1)
+    // 5. Remove o filho da origem
+    if (removerFilho(origem, idParaMover) == -1)
         return -1;
 
-    if (inserirFilho(dest, id) == -1)
+    // 6. Insere o filho no destino
+    if (inserirFilho(dest, idParaMover) == -1)
     {
-        // desfaz a remoção caso o destino esteja cheio
-        inserirFilho(origem, id);
+        printf("Erro! Diretorio de destino cheio.\n");
+        inserirFilho(origem, idParaMover); // Desfaz a remoção
         return -1;
     }
 
-    // Atualiza o pai
-    fs->inodes[id].pai = novoPai;
-    fs->inodes[id].modificado = time(NULL);
+    // 7. Atualiza os metadados do i-node movido
+    fs->inodes[idParaMover].pai = novoPai;
+    fs->inodes[idParaMover].modificado = time(NULL);
 
+    printf("'%s' movido para '%s' com sucesso!\n", nome, destino);
     return 0;
 }
 
@@ -673,4 +693,67 @@ void imprimirEstadoSistema(SistemaDeArquivos *fs)
     }
 
     printf("==============================\n");
+}
+
+// Função auxiliar recursiva para desenhar a árvore
+static void desenharArvoreRecursivo(SistemaDeArquivos *fs, int idAtual, int nivel, int ehUltimoFilho, char *prefixo)
+{
+    // Desenha o item atual
+    if (nivel > 0)
+    {
+        printf("%s%s ", prefixo, ehUltimoFilho ? "L_" : "|--");
+    }
+
+    if (fs->inodes[idAtual].tipo == DIRETORIO)
+    {
+        // Destaca diretórios (pode usar códigos de cor ANSI se quiser, ex: \033[1;34m)
+        printf("[%s/]\n", fs->inodes[idAtual].nome);
+    }
+    else
+    {
+        printf("%s (%d bytes, %d blocos)\n", 
+               fs->inodes[idAtual].nome, 
+               fs->inodes[idAtual].tamanho, 
+               fs->inodes[idAtual].quantidadeBlocos);
+    }
+
+    // Se for diretório, vamos processar os filhos recursivamente
+    if (fs->inodes[idAtual].tipo == DIRETORIO)
+    {
+        Diretorio *dir = &fs->diretorios[idAtual];
+        
+        // Aloca espaço para o novo prefixo visual dos galhos
+        char *novoPrefixo = malloc(strlen(prefixo) + 10);
+        
+        for (int i = 0; i < dir->qtdFilhos; i++)
+        {
+            int idFilho = dir->filhos[i];
+            int ultimo = (i == dir->qtdFilhos - 1);
+
+            // Prepara o recuo visual para a próxima linha
+            if (nivel > 0) {
+                sprintf(novoPrefixo, "%s%s   ", prefixo, ehUltimoFilho ? " " : "|");
+            } else {
+                strcpy(novoPrefixo, "");
+            }
+
+            // Chamada recursiva para o filho
+            desenharArvoreRecursivo(fs, idFilho, nivel + 1, ultimo, novoPrefixo);
+        }
+        
+        free(novoPrefixo);
+    }
+}
+
+// Função principal que o usuário chama
+void exibirArvore(SistemaDeArquivos *fs)
+{
+    printf("\n========================================\n");
+    printf("        ÁRVORE DO SISTEMA DE ARQUIVOS     \n");
+    printf("========================================\n");
+    
+    // Começa a partir da raiz (ID 0)
+    desenharArvoreRecursivo(fs, fs->raiz, 0, 1, "");
+    
+    printf("========================================\n");
 }

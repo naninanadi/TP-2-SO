@@ -60,3 +60,4 @@ int apagar(SistemaDeArquivos *fs, char nome[]);
 //gerais
 
 void imprimirEstadoSistema(SistemaDeArquivos *fs);
+void exibirArvore(SistemaDeArquivos *fs);
