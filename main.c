@@ -6,11 +6,45 @@
 int main()
 {
     SistemaDeArquivos fs;
+    int tamanhoDisco = 0;
+    int tamanhoBloco = 0;
 
-    // 1. Inicializa o Sistema de Arquivos (Simulando um disco de 1MB com blocos de 512 bytes)
-    // Conforme exigido: usuário define tamanho de partição e blocos.
+    printf("==================================================\n");
+    printf("   CONFIGURAÇÃO INICIAL DO SISTEMA DE ARQUIVOS    \n");
+    printf("==================================================\n");
+
+    // 1. Escolha e validação do Tamanho do Disco
+    while (1) {
+        printf("Digite o tamanho do disco em bytes (Min: 102400 [100KB], Max: 10485760 [10MB]): ");
+        if (scanf("%d", &tamanhoDisco) != 1) {
+            while (getchar() != '\n'); // limpa buffer se digitarem letras
+            continue;
+        }
+        if (tamanhoDisco >= 102400 && tamanhoDisco <= 10485760) {
+            break; // Valor válido!
+        }
+        printf("Tamanho inválido! Respeite o intervalo definido pelo grupo.\n");
+    }
+
+    // 2. Escolha e validação do Tamanho do Bloco
+    while (1) {
+        printf("Digite o tamanho do bloco em bytes (Opções aceitas: 128, 256, 512, 1024): ");
+        if (scanf("%d", &tamanhoBloco) != 1) {
+            while (getchar() != '\n');
+            continue;
+        }
+        if (tamanhoBloco == 128 || tamanhoBloco == 256 || tamanhoBloco == 512 || tamanhoBloco == 1024) {
+            break; // Valor válido!
+        }
+        printf("Tamanho de bloco inválido!\n");
+    }
+
+    printf("\nConfigurando disco de %d bytes com blocos de %d bytes...\n", tamanhoDisco, tamanhoBloco);
+    printf("Total de blocos no sistema: %d\n\n", tamanhoDisco / tamanhoBloco);
+
+    // 3. Inicializa o Sistema de Arquivos com os dados digitados pelo usuário
     printf("=== 1. INICIALIZANDO O SISTEMA DE ARQUIVOS ===\n");
-    inicializarFS(&fs, 1024 * 1024, 512);
+    inicializarFS(&fs, tamanhoDisco, tamanhoBloco);
     exibirArvore(&fs);
 
     // 2. Testando a Criação de Diretórios (Hierarquia)

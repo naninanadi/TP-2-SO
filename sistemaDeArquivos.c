@@ -77,10 +77,8 @@ void destruirFS(SistemaDeArquivos *fs)
     free(fs->blocos);
 }
 
-static int encontrarBlocoLivre(SistemaDeArquivos *fs)
-{
-    for (int i = 0; i < fs->super.totalBlocos; i++)
-    {
+static int encontrarBlocoLivre(SistemaDeArquivos *fs){
+    for (int i = 0; i < fs->super.totalBlocos; i++){
         if (!fs->blocos[i].usado)
             return i;
     }
@@ -309,11 +307,7 @@ int criarArquivo(SistemaDeArquivos *fs, char nome[]){
     return 0;
 }
 
-void listarConteudoArquivo(
-    SistemaDeArquivos *fs,
-    char nome[]
-)
-{
+void listarConteudoArquivo(SistemaDeArquivos *fs, char nome[]){
     int id = procurarFilho(
         fs,
         fs->diretorioAtual,
@@ -345,10 +339,7 @@ void listarConteudoArquivo(
     free(buffer);
 }
 
-int importarArquivo(SistemaDeArquivos *fs,
-                    char nomeSimulado[],
-                    char caminhoArquivo[])
-{
+int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]){
 
     int id = procurarFilho(fs, fs->diretorioAtual, nomeSimulado);
     
@@ -372,15 +363,13 @@ int importarArquivo(SistemaDeArquivos *fs,
     (tamanho + fs->super.tamanhoBloco - 1) /
     fs->super.tamanhoBloco;
     
-    if (quantidadeBlocos > MAX_BLOCOS_ARQUIVO)
-    {
+    if (quantidadeBlocos > MAX_BLOCOS_ARQUIVO){
         fclose(arquivo);
         return -1;
     }
     
     /* Verifica se há blocos livres suficientes */
-    if (quantidadeBlocos > fs->super.blocosLivres)
-    {
+    if (quantidadeBlocos > fs->super.blocosLivres){
         fclose(arquivo);
         return -1;
     }
@@ -390,18 +379,15 @@ int importarArquivo(SistemaDeArquivos *fs,
     
     char *buffer = malloc(fs->super.tamanhoBloco);
     
-    if (buffer == NULL)
-    {
+    if (buffer == NULL){
         fclose(arquivo);
         return -1;
     }
     
-    for (int i = 0; i < quantidadeBlocos; i++)
-    {
+    for (int i = 0; i < quantidadeBlocos; i++){
         int indiceBloco = encontrarBlocoLivre(fs);
         
-        if (indiceBloco == -1)
-        {
+        if (indiceBloco == -1){
             free(buffer);
             fclose(arquivo);
             return -1;
@@ -413,16 +399,9 @@ int importarArquivo(SistemaDeArquivos *fs,
         printf("oi\n");
         fs->super.blocosLivres--;
         
-        int bytesLidos = fread(
-            buffer,
-            1,
-            fs->super.tamanhoBloco,
-            arquivo);
+        int bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo);
             
-            memcpy(
-                fs->blocos[indiceBloco].dados,
-                buffer,
-                bytesLidos);
+            memcpy(fs->blocos[indiceBloco].dados, buffer, bytesLidos);
                 
                 fs->blocos[indiceBloco].bytesUtilizados = bytesLidos;
                 
@@ -441,16 +420,9 @@ int importarArquivo(SistemaDeArquivos *fs,
         
 //Bloco de dados
 
-int alocarBloco(
-    SistemaDeArquivos *fs
-)
-{
-    for(int i = 0;
-        i < fs->super.totalBlocos;
-        i++)
-    {
-        if(!fs->blocos[i].usado)
-        {
+int alocarBloco(SistemaDeArquivos *fs){
+    for(int i = 0; i < fs->super.totalBlocos; i++){
+        if(!fs->blocos[i].usado){
             fs->blocos[i].usado = 1;
 
             fs->super.blocosLivres--;
@@ -462,29 +434,15 @@ int alocarBloco(
     return -1;
 }
 
-void liberarBloco(
-    SistemaDeArquivos *fs,
-    int bloco
-)
-{
+void liberarBloco(SistemaDeArquivos *fs, int bloco){
     fs->blocos[bloco].usado = 0;
 
-    memset(
-        fs->blocos[bloco].dados,
-        0,
-        fs->super.tamanhoBloco
-    );
+    memset(fs->blocos[bloco].dados, 0, fs->super.tamanhoBloco);
 
     fs->super.blocosLivres++;
 }
 
-int escreverBloco(
-    SistemaDeArquivos *fs,
-    int bloco,
-    const char *dados,
-    int bytes
-)
-{
+int escreverBloco(SistemaDeArquivos *fs, int bloco, const char *dados, int bytes){
     if(bytes >
        fs->super.tamanhoBloco)
         return -1;
@@ -498,29 +456,16 @@ int escreverBloco(
     return 0;
 }
 
-int lerBloco(
-    SistemaDeArquivos *fs,
-    int bloco,
-    char *destino
-)
-{
-    memcpy(
-        destino,
-        fs->blocos[bloco].dados,
-        fs->super.tamanhoBloco
-    );
+int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino){
+
+    memcpy(destino, fs->blocos[bloco].dados, fs->super.tamanhoBloco);
 
     return 0;
 }
 
 // Gerais
 
-int renomear(
-    SistemaDeArquivos *fs,
-    char nomeAtual[],
-    char novoNome[]
-)
-{
+int renomear(SistemaDeArquivos *fs, char nomeAtual[], char novoNome[]){
     int id = procurarFilho(
         fs,
         fs->diretorioAtual,
