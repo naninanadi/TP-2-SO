@@ -13,32 +13,23 @@ typedef enum {
     DIRETORIO
 } TipoInode;
 
+// Em inode.h
 typedef struct {
-
     int usado;
     int id;
-
     TipoInode tipo;
-
-    char nome[MAX_NOME];
-
     int tamanho;
-
     int quantidadeBlocos;
     int blocos[MAX_BLOCOS_ARQUIVO];
-
     time_t criado;
     time_t modificado;
     time_t acessado;
-
-    int pai;
-
+    int pai; 
 } Inode;
 
-int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai);
+// Ajuste o protótipo (remove o nome)
+int criarInode(Inode tabela[], TipoInode tipo, int pai);
 
 void removerInode(Inode tabela[], int id);
-
-int buscarInodePorNome(Inode tabela[], char nome[]);
 
 #endif

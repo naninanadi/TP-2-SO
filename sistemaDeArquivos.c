@@ -1,132 +1,79 @@
 #include "sistemaDeArquivos.h"
 
-static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]){
+// --- FUNÇÕES AUXILIARES INTERNAS CORRIGIDAS ---
+
+static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]) {
     Diretorio *dir = &fs->diretorios[diretorioPai];
 
-    for(int i = 0; i < dir->qtdFilhos; i++){
-        int id = dir->filhos[i];
-
-        if(strcmp(fs->inodes[id].nome,
-                nome
-            ) == 0
-        )
-        {
-            return id;
+    for(int i = 0; i < dir->qtdFilhos; i++) {
+        if(strcmp(dir->filhos[i].nome, nome) == 0) {
+            return dir->filhos[i].inodeId;
         }
     }
-
     return -1;
 }
 
-static int removerFilho(Diretorio *dir, int id)
-{
-    int pos = -1;
+static int inserirFilho(Diretorio *dir, int id, char nome[]) {
+    if (dir->qtdFilhos >= MAX_FILHOS) return -1;
+    strcpy(dir->filhos[dir->qtdFilhos].nome, nome);
+    dir->filhos[dir->qtdFilhos].inodeId = id;
+    dir->qtdFilhos++;
+    return 0;
+}
 
-    // Procura em qual posição do array 'filhos' o ID está
-    for (int i = 0; i < dir->qtdFilhos; i++)
-    {
-        if (dir->filhos[i] == id)
-        {
+static int removerFilho(Diretorio *dir, int id) {
+    int pos = -1;
+    for (int i = 0; i < dir->qtdFilhos; i++) {
+        if (dir->filhos[i].inodeId == id) {
             pos = i;
             break;
         }
     }
-
-    // Se não achou o arquivo nesse diretório, retorna erro
-    if (pos == -1)
-        return -1;
-
-    // Desloca todos os filhos seguintes uma posição para trás
-    for (int i = pos; i < dir->qtdFilhos - 1; i++)
-    {
+    if (pos == -1) return -1;
+    for (int i = pos; i < dir->qtdFilhos - 1; i++) {
         dir->filhos[i] = dir->filhos[i + 1];
     }
-
-    // Opcional: limpa a última posição que sobrou para não deixar lixo
-    dir->filhos[dir->qtdFilhos - 1] = -1;
-
-    // Diminui a quantidade de filhos do diretório
     dir->qtdFilhos--;
-
     return 0;
 }
 
-static int inserirFilho(Diretorio *dir, int id)
-{
-    if (dir->qtdFilhos >= MAX_FILHOS)
-    {
-        return -1; // Diretório cheio
+// Função auxiliar essencial para descobrir o nome de um i-node olhando pelo pai dele
+static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
+    if (id == fs->raiz) {
+        strcpy(destino, "/");
+        return;
     }
-
-    // Insere o ID na próxima posição disponível
-    dir->filhos[dir->qtdFilhos] = id;
-    dir->qtdFilhos++;
-
-    return 0;
+    int paiId = fs->inodes[id].pai;
+    Diretorio *paiDir = &fs->diretorios[paiId];
+    for (int i = 0; i < paiDir->qtdFilhos; i++) {
+        if (paiDir->filhos[i].inodeId == id) {
+            strcpy(destino, paiDir->filhos[i].nome);
+            return;
+        }
+    }
+    strcpy(destino, "desconhecido");
 }
 
-void destruirFS(SistemaDeArquivos *fs)
-{
-    for(int i = 0;
-        i < fs->super.totalBlocos;
-        i++)
-    {
-        free(fs->blocos[i].dados);
-    }
+// --- FUNÇÕES PRINCIPAIS DO SISTEMA ---
 
-    free(fs->blocos);
-}
-
-static int encontrarBlocoLivre(SistemaDeArquivos *fs){
-    for (int i = 0; i < fs->super.totalBlocos; i++){
-        if (!fs->blocos[i].usado)
-            return i;
-    }
-
-    return -1;
-}
-
-// Sistema de arquivos
-
-void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
-
+void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco) {
     fs->super.tamanhoDisco = tamanhoDisco;
     fs->super.tamanhoBloco = tamanhoBloco;
-
     fs->super.totalBlocos = tamanhoDisco / tamanhoBloco;
-
     fs->super.blocosLivres = fs->super.totalBlocos;
-
     fs->super.totalInodes = MAX_INODES;
-
     fs->super.inodesLivres = MAX_INODES;
 
-    for(int i = 0; i < MAX_INODES; i++){
-        fs->inodes[i].usado = 0;
-        fs->diretorios[i].qtdFilhos = 0;
-    }
-
     fs->blocos = malloc(fs->super.totalBlocos * sizeof(Bloco));
-    if (fs->blocos == NULL) {
-        printf("Erro fatal: Falha ao alocar os blocos de dados!\n");
-        exit(1);
-    }
-
-    // Inicializa os Inodes e Diretores
-    for(int i = 0; i < MAX_INODES; i++){
-        fs->inodes[i].usado = 0;
-        fs->diretorios[i].qtdFilhos = 0;
-    }
-
-    // === CORREÇÃO AQUI: Inicializa e aloca o conteúdo de cada bloco ===
-    for(int i = 0; i < fs->super.totalBlocos; i++){
+    for(int i = 0; i < fs->super.totalBlocos; i++) {
         fs->blocos[i].usado = 0;
         fs->blocos[i].bytesUtilizados = 0;
-        fs->blocos[i].dados = malloc(tamanhoBloco); // Aloca o tamanho real do bloco
-        if (fs->blocos[i].dados == NULL) {
-            printf("Erro fatal: Falha ao alocar dados do bloco %d!\n", i);
-            exit(1);
-        }
+        fs->blocos[i].dados = malloc(tamanhoBloco);
+    }
+
+    for(int i = 0; i < MAX_INODES; i++) {
+        fs->inodes[i].usado = 0;
+        fs->diretorios[i].qtdFilhos = 0;
     }
 
     fs->raiz = 0;
@@ -134,629 +81,306 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
 
     fs->inodes[0].usado = 1;
     fs->inodes[0].id = 0;
-
     fs->inodes[0].tipo = DIRETORIO;
-
-    strcpy(fs->inodes[0].nome, "/");
-
-    fs->inodes[0].pai = -1;
-
-    fs->inodes[0].criado = time(NULL);
-
-    fs->inodes[0].modificado = time(NULL);
-
-    fs->inodes[0].acessado = time(NULL);
-
+    fs->inodes[0].pai = -1; // Raiz não tem pai
+    fs->inodes[0].quantidadeBlocos = 0;
     fs->super.inodesLivres--;
 }
 
-// Diretorio
+void destruirFS(SistemaDeArquivos *fs) {
+    for(int i = 0; i < fs->super.totalBlocos; i++) {
+        free(fs->blocos[i].dados);
+    }
+    free(fs->blocos);
+}
 
-int criarDiretorio(SistemaDeArquivos *fs, char nome[]){
+int criarDiretorio(SistemaDeArquivos *fs, char nome[]) {
+    int atual = fs->diretorioAtual;
+    if (procurarFilho(fs, atual, nome) != -1) {
+        printf("Erro: Nome '%s' ja existe neste diretorio.\n", nome);
+        return -1;
+    }
+    int id = criarInode(fs->inodes, DIRETORIO, atual);
+    if (id == -1) return -1;
+
+    if (inserirFilho(&fs->diretorios[atual], id, nome) == -1) {
+        removerInode(fs->inodes, id);
+        return -1;
+    }
+    fs->diretorios[id].qtdFilhos = 0;
+    fs->super.inodesLivres--;
+    return id;
+}
+
+int criarArquivo(SistemaDeArquivos *fs, char nome[]) {
     int atual = fs->diretorioAtual;
 
-    if(procurarFilho(fs,atual, nome) != -1){
-        printf("Erro! Diretorio ja existente.\n");
+    if (procurarFilho(fs, atual, nome) != -1) {
+        printf("Erro: Nome '%s' ja existe neste diretorio.\n", nome);
         return -1;
     }
 
-    int novo = criarInode(fs->inodes,DIRETORIO, nome,atual);
+    
+    int id = criarInode(fs->inodes, ARQUIVO, atual);
+    if (id == -1) return -1;
 
-    if(novo == -1) return -1;
-
-    Diretorio *pai = &fs->diretorios[atual];
-
-    if (inserirFilho(pai, novo) == -1)
-    {
-        printf("Erro! Diretorio cheio.\n");
+    if (inserirFilho(&fs->diretorios[atual], id, nome) == -1) {
+        removerInode(fs->inodes, id);
         return -1;
     }
-
     fs->super.inodesLivres--;
-
-    return 0;
+    return id;
 }
 
-void listarDiretorio(SistemaDeArquivos *fs){
-
-    Diretorio *dir = &fs->diretorios[fs->diretorioAtual];
-
-    printf("\n");
-
-    for(int i = 0; i < dir->qtdFilhos; i++){
-
-        int id =dir->filhos[i];
-
-        if(fs->inodes[id].tipo == DIRETORIO){
-            printf("[DIR] %s\n", fs->inodes[id].nome);
-        } else {
-            printf("[ARQ] %s\n", fs->inodes[id].nome);
-        }
-    }
-
-    printf("\n");
-}
-
-int entrarDiretorio(SistemaDeArquivos *fs, char nome[]){
-
-    if(strcmp(nome, "..") == 0){
-        int pai = fs->inodes[fs->diretorioAtual].pai;
-
-        if(pai != -1){
-            fs->diretorioAtual = pai;
-        }
-
+int entrarDiretorio(SistemaDeArquivos *fs, char nome[]) {
+    if (strcmp(nome, "..") == 0) {
+        if (fs->diretorioAtual == fs->raiz) return 0; // Já está na raiz
+        fs->diretorioAtual = fs->inodes[fs->diretorioAtual].pai;
         return 0;
     }
-
     int id = procurarFilho(fs, fs->diretorioAtual, nome);
-
-    if(id == -1){
-        printf("Erro! Diretorio inexistente!\n");
+    if (id == -1 || fs->inodes[id].tipo != DIRETORIO) {
+        printf("Diretorio '%s' nao encontrado.\n", nome);
         return -1;
     }
-
-    if(fs->inodes[id].tipo != DIRETORIO){
-        return -1;
-    }
-
     fs->diretorioAtual = id;
-
     return 0;
 }
 
-int removerDiretorio(SistemaDeArquivos *fs, char nome[]){
-
+int removerDiretorio(SistemaDeArquivos *fs, char nome[]) {
     int id = procurarFilho(fs, fs->diretorioAtual, nome);
-
-    if(id == -1){
-        printf("Erro! Diretorio inexistente!\n");
+    if (id == -1 || fs->inodes[id].tipo != DIRETORIO) {
+        printf("Erro: Diretorio nao encontrado.\n");
         return -1;
     }
-
-    if(fs->inodes[id].tipo != DIRETORIO){
+    if (fs->diretorios[id].qtdFilhos > 0) {
+        printf("Erro: Diretorio '%s' nao esta vazio!\n", nome);
         return -1;
     }
-
-    if(fs->diretorios[id].qtdFilhos > 0){
-        return -1;
-    }
-
-    Diretorio *pai = &fs->diretorios[fs->diretorioAtual];
-
-    int pos = -1;
-
-    for(int i = 0; i < pai->qtdFilhos; i++){
-        if(pai->filhos[i] == id){
-            pos = i;
-            break;
-        }
-    }
-
-    if(pos == -1) return -1;
-
-    for(int i = pos; i < pai->qtdFilhos - 1; i++){
-        pai->filhos[i] =
-            pai->filhos[i + 1];
-    }
-
-    pai->qtdFilhos--;
-
+    removerFilho(&fs->diretorios[fs->diretorioAtual], id);
     removerInode(fs->inodes, id);
-
     fs->super.inodesLivres++;
-
     return 0;
 }
 
-
-//Arquivo
-
-int criarArquivo(SistemaDeArquivos *fs, char nome[]){
+int renomear(SistemaDeArquivos *fs, char antigo[], char novo[]) {
     int atual = fs->diretorioAtual;
-
-    if (procurarFilho(fs, atual, nome) != -1)
-        return -1;
-
-    int id = criarInode(
-        fs->inodes,
-        ARQUIVO,
-        nome,
-        atual
-    );
-
-    if (id == -1)
-        return -1;
-
-    fs->inodes[id].tamanho = 0;
-    fs->inodes[id].quantidadeBlocos = 0;
-
-    for(int i = 0; i < MAX_BLOCOS_ARQUIVO; i++)
-        fs->inodes[id].blocos[i] = -1;
-
-    Diretorio *pai = &fs->diretorios[atual];
-
-    if (inserirFilho(pai, id) == -1)
-    {
-        printf("Erro! Diretorio cheio.\n");
+    if (procurarFilho(fs, atual, novo) != -1) {
+        printf("Erro: Nome '%s' ja existe no destino.\n", novo);
         return -1;
     }
-
-    fs->super.inodesLivres--;
-
-    return 0;
-}
-
-void listarConteudoArquivo(SistemaDeArquivos *fs, char nome[]){
-    int id = procurarFilho(
-        fs,
-        fs->diretorioAtual,
-        nome
-    );
-
-    if(id == -1)
-        return;
-
-    if(fs->inodes[id].tipo != ARQUIVO)
-        return;
-
-    char *buffer =
-        malloc(fs->super.tamanhoBloco+1);
-
-          printf("\n");
-    for(int i=0;
-        i<fs->inodes[id].quantidadeBlocos;
-        i++)
-    {
-        lerBloco(fs, fs->inodes[id].blocos[i], buffer );
-
-        buffer[fs->blocos[fs->inodes[id].blocos[i]].bytesUtilizados] = '\0';
-
-        printf("%s", buffer);
-    }
-    printf("\n");
-      printf("\n");
-
-    free(buffer);
-}
-
-int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]){
-
-    int id = procurarFilho(fs, fs->diretorioAtual, nomeSimulado);
-    
-    if (id == -1)
-    return -1;
-    
-    if (fs->inodes[id].tipo != ARQUIVO)
-    return -1;
-    
-    FILE *arquivo = fopen(caminhoArquivo, "rb");
-    
-    if (arquivo == NULL)
-    return -1;
-    
-    /* Descobre o tamanho do arquivo */
-    fseek(arquivo, 0, SEEK_END);
-    long tamanho = ftell(arquivo);
-    rewind(arquivo);
-    
-    int quantidadeBlocos =
-    (tamanho + fs->super.tamanhoBloco - 1) /
-    fs->super.tamanhoBloco;
-    
-    if (quantidadeBlocos > MAX_BLOCOS_ARQUIVO){
-        fclose(arquivo);
-        return -1;
-    }
-    
-    /* Verifica se há blocos livres suficientes */
-    if (quantidadeBlocos > fs->super.blocosLivres){
-        fclose(arquivo);
-        return -1;
-    }
-    
-    fs->inodes[id].tamanho = tamanho;
-    fs->inodes[id].quantidadeBlocos = quantidadeBlocos;
-    
-    char *buffer = malloc(fs->super.tamanhoBloco);
-    
-    if (buffer == NULL){
-        fclose(arquivo);
-        return -1;
-    }
-    
-    for (int i = 0; i < quantidadeBlocos; i++){
-        int indiceBloco = encontrarBlocoLivre(fs);
-        
-        if (indiceBloco == -1){
-            free(buffer);
-            fclose(arquivo);
-            return -1;
-        }
-
-        // printf("%d\n", indiceBloco);
-        
-        fs->blocos[indiceBloco].usado = 1;
-        // printf("oi\n");
-        fs->super.blocosLivres--;
-        
-        int bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo);
-            
-            memcpy(fs->blocos[indiceBloco].dados, buffer, bytesLidos);
-                
-                fs->blocos[indiceBloco].bytesUtilizados = bytesLidos;
-                
-                fs->inodes[id].blocos[i] = indiceBloco;
-            }
-            
-            free(buffer);
-            
-            fclose(arquivo);
-            
-            fs->inodes[id].modificado = time(NULL);
-            fs->inodes[id].acessado = time(NULL);
-            
+    Diretorio *dir = &fs->diretorios[atual];
+    for (int i = 0; i < dir->qtdFilhos; i++) {
+        if (strcmp(dir->filhos[i].nome, antigo) == 0) {
+            strcpy(dir->filhos[i].nome, novo);
+            fs->inodes[dir->filhos[i].inodeId].modificado = time(NULL);
             return 0;
         }
-        
-//Bloco de dados
-
-int alocarBloco(SistemaDeArquivos *fs){
-    for(int i = 0; i < fs->super.totalBlocos; i++){
-        if(!fs->blocos[i].usado){
-            fs->blocos[i].usado = 1;
-
-            fs->super.blocosLivres--;
-
-            return i;
-        }
     }
-
+    printf("Erro: Item '%s' nao encontrado.\n", antigo);
     return -1;
 }
 
-void liberarBloco(SistemaDeArquivos *fs, int bloco){
-    fs->blocos[bloco].usado = 0;
+int mover(SistemaDeArquivos *fs, char nome[], char destino[]) {
+    int origPai = fs->diretorioAtual;
+    int idParaMover = procurarFilho(fs, origPai, nome);
+    if (idParaMover == -1) return -1;
 
-    memset(fs->blocos[bloco].dados, 0, fs->super.tamanhoBloco);
+    if (entrarDiretorio(fs, destino) == -1) return -1;
+    int novoPai = fs->diretorioAtual;
+    fs->diretorioAtual = origPai; // restaura
 
-    fs->super.blocosLivres++;
-}
-
-int escreverBloco(SistemaDeArquivos *fs, int bloco, const char *dados, int bytes){
-    if(bytes >
-       fs->super.tamanhoBloco)
-        return -1;
-
-    memcpy(
-        fs->blocos[bloco].dados,
-        dados,
-        bytes
-    );
-
-    return 0;
-}
-
-int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino){
-
-    memcpy(destino, fs->blocos[bloco].dados, fs->super.tamanhoBloco);
-
-    return 0;
-}
-
-// Gerais
-
-int renomear(SistemaDeArquivos *fs, char nomeAtual[], char novoNome[]){
-    int id = procurarFilho(
-        fs,
-        fs->diretorioAtual,
-        nomeAtual
-    );
-
-    if (id == -1)
-        return -1;
-
-    if (procurarFilho(
-            fs,
-            fs->diretorioAtual,
-            novoNome) != -1)
-        return -1;
-
-    strcpy(
-        fs->inodes[id].nome,
-        novoNome
-    );
-
-    fs->inodes[id].modificado =
-        time(NULL);
-
-    return 0;
-}
-
-int mover(SistemaDeArquivos *fs, char nome[], char destino[])
-{
-    int diretorioOriginal = fs->diretorioAtual;
-
-    // 1. Procura o arquivo/diretório que será movido no diretório atual
-    int idParaMover = procurarFilho(fs, diretorioOriginal, nome);
-    if (idParaMover == -1)
-    {
-        printf("Erro! Arquivo ou diretorio '%s' nao encontrado aqui.\n", nome);
+    if (procurarFilho(fs, novoPai, nome) != -1) {
+        printf("Erro: Nome ja existente no destino.\n");
         return -1;
     }
 
-    // 2. "Viaja" temporariamente para o diretório de destino para validar se ele existe
-    // Se o destino for "..", entrarDiretorio vai subir um nível corretamente.
-    if (entrarDiretorio(fs, destino) == -1)
-    {
-        printf("Erro! O destino '%s' nao e um diretorio valido ou nao existe.\n", destino);
-        fs->diretorioAtual = diretorioOriginal; // Garante que não ficamos perdidos
-        return -1;
-    }
-
-    int novoPai = fs->diretorioAtual; // Este é o ID do diretório de destino
-
-    // Ignora a tentativa de mover um diretório para dentro dele mesmo
-    if (idParaMover == novoPai)
-    {
-        printf("Erro! Nao e possivel mover um diretorio para dentro dele mesmo.\n");
-        fs->diretorioAtual = diretorioOriginal;
-        return -1;
-    }
-
-    // 3. Verifica se já existe algo com o mesmo nome lá no destino
-    if (procurarFilho(fs, novoPai, nome) != -1)
-    {
-        printf("Erro! Ja existe um item com o nome '%s' no destino.\n", nome);
-        fs->diretorioAtual = diretorioOriginal; // Volta ao normal
-        return -1;
-    }
-
-    // 4. Volta ao diretório original para fazer a remoção de forma segura
-    fs->diretorioAtual = diretorioOriginal;
-
-    Diretorio *origem = &fs->diretorios[diretorioOriginal];
-    Diretorio *dest = &fs->diretorios[novoPai];
-
-    // 5. Remove o filho da origem
-    if (removerFilho(origem, idParaMover) == -1)
-        return -1;
-
-    // 6. Insere o filho no destino
-    if (inserirFilho(dest, idParaMover) == -1)
-    {
-        printf("Erro! Diretorio de destino cheio.\n");
-        inserirFilho(origem, idParaMover); // Desfaz a remoção
-        return -1;
-    }
-
-    // 7. Atualiza os metadados do i-node movido
+    removerFilho(&fs->diretorios[origPai], idParaMover);
+    inserirFilho(&fs->diretorios[novoPai], idParaMover, nome);
     fs->inodes[idParaMover].pai = novoPai;
     fs->inodes[idParaMover].modificado = time(NULL);
-
-    printf("'%s' movido para '%s' com sucesso!\n", nome, destino);
     return 0;
 }
 
-int apagar(SistemaDeArquivos *fs, char nome[])
-{
+void listarDiretorio(SistemaDeArquivos *fs) {
+    Diretorio *dir = &fs->diretorios[fs->diretorioAtual];
+    if(dir->qtdFilhos == 0) {
+        printf("(Diretorio Vazio)\n");
+        return;
+    }
+    for(int i = 0; i < dir->qtdFilhos; i++) {
+        int id = dir->filhos[i].inodeId;
+        printf("%s \t\t [%s] \t Inode: %d \t Tam: %d bytes\n", 
+               dir->filhos[i].nome, 
+               fs->inodes[id].tipo == DIRETORIO ? "DIR" : "ARQ", 
+               id, fs->inodes[id].tamanho);
+    }
+}
+
+void pwd(SistemaDeArquivos *fs) {
+    int caminho[MAX_INODES];
+    int n = 0;
     int atual = fs->diretorioAtual;
 
-    // 1. Procura o arquivo no diretório atual
-    int id = procurarFilho(fs, atual, nome);
-
-    if (id == -1)
-    {
-        printf("Erro! Arquivo nao encontrado.\n");
-        return -1;
+    while (atual != -1) {
+        caminho[n++] = atual;
+        atual = fs->inodes[atual].pai;
     }
 
-    // Garante que o que estamos apagando é um ARQUIVO e não um diretório
-    if (fs->inodes[id].tipo != ARQUIVO)
-    {
-        printf("Erro! '%s' nao e um arquivo (e um diretorio).\n", nome);
-        return -1;
+    printf("/");
+    for (int i = n - 2; i >= 0; i--) {
+        char nomePasta[MAX_NOME];
+        obterNomeDoInode(fs, caminho[i], nomePasta);
+        printf("%s", nomePasta);
+        if (i != 0) printf("/");
     }
-
-    // 2. Libera todos os blocos de dados associados a este arquivo
-    for (int i = 0; i < fs->inodes[id].quantidadeBlocos; i++)
-    {
-        int blocoParaLiberar = fs->inodes[id].blocos[i];
-        if (blocoParaLiberar != -1)
-        {
-            liberarBloco(fs, blocoParaLiberar);
-        }
-    }
-
-    // 3. Remove o arquivo da lista de filhos do diretório atual
-    Diretorio *pai = &fs->diretorios[atual];
-    if (removerFilho(pai, id) == -1)
-    {
-        printf("Erro interno ao remover o arquivo do diretorio pai.\n");
-        return -1;
-    }
-
-    // 4. Libera o i-node na tabela de i-nodes
-    removerInode(fs->inodes, id);
-
-    // 5. Atualiza os contadores do SuperBloco
-    fs->super.inodesLivres++;
-
-    printf("Arquivo '%s' apagado com sucesso e blocos liberados!\n", nome);
-    return 0;
+    printf("\n");
 }
 
-void imprimirEstadoSistema(SistemaDeArquivos *fs)
-{
-    printf("\n==============================\n");
-    printf("ESTADO DO SISTEMA\n");
-    printf("==============================\n");
+// --- VISUALIZAÇÃO GRÁFICA DA ÁRVORE TOTALMENTE CORRIGIDA ---
 
-    printf("Diretório atual: %d\n", fs->diretorioAtual);
-    printf("Raiz: %d\n", fs->raiz);
-
-    printf("\nInodes livres: %d\n", fs->super.inodesLivres);
-
-    printf("\nTabela de inodes:\n");
-
-    for (int i = 0; i < MAX_INODES; i++)
-    {
-        if (fs->inodes[i].usado)
-        {
-            printf("[%d] ", i);
-
-            if (fs->inodes[i].tipo == DIRETORIO)
-                printf("DIR  ");
-            else
-                printf("ARQ  ");
-
-            printf("%s", fs->inodes[i].nome);
-
-            printf("  pai=%d", fs->inodes[i].pai);
-
-            printf("\n");
-        }
+static void desenharArvoreRecursivo(SistemaDeArquivos *fs, int idAtual, char *nomeVisual, int nivel, int ehUltimoFilho, char *prefixo) {
+    if (nivel > 0) {
+        printf("%s%s ", prefixo, ehUltimoFilho ? "\u2514\u2500\u2500" : "\u251c\u2500\u2500");
     }
 
-    printf("==============================\n");
-}
-
-// Função auxiliar recursiva para desenhar a árvore
-static void desenharArvoreRecursivo(SistemaDeArquivos *fs, int idAtual, int nivel, int ehUltimoFilho, char *prefixo)
-{
-    // Desenha o item atual
-    if (nivel > 0)
-    {
-        printf("%s%s ", prefixo, ehUltimoFilho ? "L_" : "|--");
+    if (fs->inodes[idAtual].tipo == DIRETORIO) {
+        printf("[%s/]\n", nomeVisual);
+    } else {
+        printf("%s (%d bytes, %d blocos)\n", nomeVisual, fs->inodes[idAtual].tamanho, fs->inodes[idAtual].quantidadeBlocos);
     }
 
-    if (fs->inodes[idAtual].tipo == DIRETORIO)
-    {
-        // Destaca diretórios (pode usar códigos de cor ANSI se quiser, ex: \033[1;34m)
-        if (nivel == 0) {
-            printf("[%s]\n", fs->inodes[idAtual].nome);
-        } else {
-            printf("[%s/]\n", fs->inodes[idAtual].nome);
-        }
-    }
-
-    else
-    {
-        printf("%s (%d bytes, %d blocos)\n", 
-               fs->inodes[idAtual].nome, 
-               fs->inodes[idAtual].tamanho, 
-               fs->inodes[idAtual].quantidadeBlocos);
-    }
-
-    // Se for diretório, vamos processar os filhos recursivamente
-    if (fs->inodes[idAtual].tipo == DIRETORIO)
-    {
+    if (fs->inodes[idAtual].tipo == DIRETORIO) {
         Diretorio *dir = &fs->diretorios[idAtual];
+        char *novoPrefixo = malloc(strlen(prefixo) + 20);
         
-        // Aloca espaço para o novo prefixo visual dos galhos
-        char *novoPrefixo = malloc(strlen(prefixo) + 10);
-        
-        for (int i = 0; i < dir->qtdFilhos; i++)
-        {
-            int idFilho = dir->filhos[i];
+        for (int i = 0; i < dir->qtdFilhos; i++) {
+            int idFilho = dir->filhos[i].inodeId;
+            char *nomeFilho = dir->filhos[i].nome;
             int ultimo = (i == dir->qtdFilhos - 1);
 
-            // Prepara o recuo visual para a próxima linha
             if (nivel > 0) {
-                sprintf(novoPrefixo, "%s%s   ", prefixo, ehUltimoFilho ? " " : "|");
+                sprintf(novoPrefixo, "%s%s   ", prefixo, ehUltimoFilho ? " " : "\u2502");
             } else {
                 strcpy(novoPrefixo, "");
             }
-
-            // Chamada recursiva para o filho
-            desenharArvoreRecursivo(fs, idFilho, nivel + 1, ultimo, novoPrefixo);
+            desenharArvoreRecursivo(fs, idFilho, nomeFilho, nivel + 1, ultimo, novoPrefixo);
         }
-        
         free(novoPrefixo);
     }
 }
 
-// Função principal que o usuário chama
-void exibirArvore(SistemaDeArquivos *fs)
-{
-    // printf("\n========================================\n");
-    // printf("        ARVORE DO SISTEMA DE ARQUIVOS     \n");
-    // printf("========================================\n");
+void exibirArvore(SistemaDeArquivos *fs) {
+    desenharArvoreRecursivo(fs, fs->raiz, "/", 0, 1, "");
+}
+
+// --- SISTEMA DE ALOCAÇÃO DE BLOCOS DE DADOS ---
+
+int alocarBloco(SistemaDeArquivos *fs) {
+    for(int i = 0; i < fs->super.totalBlocos; i++) {
+        if(!fs->blocos[i].usado) {
+            fs->blocos[i].usado = 1;
+            fs->blocos[i].bytesUtilizados = 0;
+            fs->super.blocosLivres--;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void liberarBloco(SistemaDeArquivos *fs, int bloco) {
+    if (bloco >= 0 && bloco < fs->super.totalBlocos) {
+        fs->blocos[bloco].usado = 0;
+        fs->blocos[bloco].bytesUtilizados = 0;
+        memset(fs->blocos[bloco].dados, 0, fs->super.tamanhoBloco);
+        fs->super.blocosLivres++;
+    }
+}
+
+int escreverBloco(SistemaDeArquivos *fs, int bloco, const char *dados, int quantidadeBytes) {
+    if(bloco < 0 || bloco >= fs->super.totalBlocos || quantidadeBytes > fs->super.tamanhoBloco) return -1;
+    memcpy(fs->blocos[bloco].dados, dados, quantidadeBytes);
+    fs->blocos[bloco].bytesUtilizados = quantidadeBytes;
+    return 0;
+}
+
+int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino) {
+    if(bloco < 0 || bloco >= fs->super.totalBlocos) return -1;
+    memcpy(destino, fs->blocos[bloco].dados, fs->blocos[bloco].bytesUtilizados);
+    return fs->blocos[bloco].bytesUtilizados;
+}
+
+int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]) {
     
-    // Começa a partir da raiz (ID 0)
-    printf("\n");
-    desenharArvoreRecursivo(fs, fs->raiz, 0, 1, "");
-    printf("\n");
-    // printf("========================================\n");
+    int id = procurarFilho(fs, fs->diretorioAtual, nomeSimulado);
+    if (id == -1 || fs->inodes[id].tipo != ARQUIVO) {
+        printf("Arquivo simulado nao encontrado.\n");
+        return -1;
+    }
+
+    FILE *arquivo = fopen(caminhoArquivo, "rb");
+    if (!arquivo) return -1;
+
+    Inode *in = &fs->inodes[id];
+    // Limpa blocos antigos se existirem
+    for (int i = 0; i < in->quantidadeBlocos; i++) {
+        liberarBloco(fs, in->blocos[i]);
+    }
+    in->quantidadeBlocos = 0;
+    in->tamanho = 0;
+
+    char *buffer = malloc(fs->super.tamanhoBloco);
+    int bytesLidos;
+
+    while ((bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo)) > 0) {
+        if (in->quantidadeBlocos >= MAX_BLOCOS_ARQUIVO) {
+            printf("Erro: Arquivo excede o tamanho maximo permitido.\n");
+            break;
+        }
+        int indiceBloco = alocarBloco(fs);
+        if (indiceBloco == -1) {
+            printf("Erro: Disco Cheio.\n");
+            break;
+        }
+        escreverBloco(fs, indiceBloco, buffer, bytesLidos);
+        in->blocos[in->quantidadeBlocos++] = indiceBloco;
+        in->tamanho += bytesLidos;
+    }
+
+    free(buffer);
+    fclose(arquivo);
+    in->modificado = time(NULL);
+    return 0;
 }
 
-void pwd(SistemaDeArquivos *fs)
-{
-    int caminho[MAX_INODES];
-    int n = 0;
-
-    int atual = fs->diretorioAtual;
-
-    while (atual != -1)
-    {
-        caminho[n++] = atual;
-        atual = fs->inodes[atual].pai;
+void listarConteudoArquivo(SistemaDeArquivos *fs, char nome[]) {
+    int id = procurarFilho(fs, fs->diretorioAtual, nome);
+    if (id == -1 || fs->inodes[id].tipo != ARQUIVO) {
+        printf("Arquivo nao encontrado.\n");
+        return;
     }
-        printf("\n");
-    printf("/");
-
-    for (int i = n - 2; i >= 0; i--)
-    {
-        printf("%s", fs->inodes[caminho[i]].nome);
-
-        if (i != 0)
-            printf("/");
+    Inode *in = &fs->inodes[id];
+    char *buffer = malloc(fs->super.tamanhoBloco);
+    for (int i = 0; i < in->quantidadeBlocos; i++) {
+        int lidos = lerBloco(fs, in->blocos[i], buffer);
+        fwrite(buffer, 1, lidos, stdout);
     }
-
-    printf("\n");
-        printf("\n");
+    free(buffer);
+    in->acessado = time(NULL);
 }
 
-void obterCaminho(SistemaDeArquivos *fs, char *caminhoFinal)
-{
-    int caminho[MAX_INODES];
-    int n = 0;
-
-    int atual = fs->diretorioAtual;
-
-    while (atual != -1)
-    {
-        caminho[n++] = atual;
-        atual = fs->inodes[atual].pai;
+int apagar(SistemaDeArquivos *fs, char nome[]) {
+    int id = procurarFilho(fs, fs->diretorioAtual, nome);
+    if (id == -1 || fs->inodes[id].tipo != ARQUIVO) {
+        printf("Erro: Arquivo nao encontrado.\n");
+        return -1;
     }
-
-    strcpy(caminhoFinal, "/");
-
-    for (int i = n - 2; i >= 0; i--)
-    {
-        strcat(caminhoFinal, fs->inodes[caminho[i]].nome);
-
-        if (i != 0)
-            strcat(caminhoFinal, "/");
+    Inode *in = &fs->inodes[id];
+    for (int i = 0; i < in->quantidadeBlocos; i++) {
+        liberarBloco(fs, in->blocos[i]);
     }
+    removerFilho(&fs->diretorios[fs->diretorioAtual], id);
+    removerInode(fs->inodes, id);
+    fs->super.inodesLivres++;
+    return 0;
 }
