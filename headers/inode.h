@@ -41,4 +41,6 @@ void removerInode(Inode tabela[], int id);
 
 int buscarInodePorNome(Inode tabela[], char nome[]);
 
+void exibirInfosInode(Inode tabela[], int id);
+
 #endif

@@ -110,6 +110,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             
         else if(strcmp(cmd,"help")==0){
             printf("\nhelp\n");
+            printf("stat <nome>\n");
             printf("mkdir <nome>\n");
             printf("rmdir <nome>\n");
             printf("ls\n");
@@ -154,6 +155,22 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 continue;
             }
             criarArquivo(fs,nome);
+        }
+
+        else if(strcmp(cmd,"stat")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: stat <nome>\n");
+                continue;
+            }
+
+            int id = buscarInodePorNome(fs->inodes, nome);
+
+            if (id != -1) {
+                exibirInfosInode(fs->inodes, id); 
+            } else {
+                printf("Erro: Arquivo ou diretório '%s' não encontrado.\n", nome);
+            }
         }
 
         else if(strcmp(cmd,"rm")==0){
