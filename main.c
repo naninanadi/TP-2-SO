@@ -4,7 +4,7 @@
 void configurarSistema(SistemaDeArquivos *fs);
 void terminal(SistemaDeArquivos *fs, FILE *input);
 
-int main(){
+int main(int argc, char *argv[]){
     SistemaDeArquivos fs;
 
     configurarSistema(&fs);
