@@ -10,7 +10,6 @@
 #include "blocoDeDados.h"
 #include "diretorio.h"
 #include "superBloco.h"
-#include "arquivo.h"
 
 typedef struct {
 

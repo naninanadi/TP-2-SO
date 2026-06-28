@@ -1,7 +1,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "inode.h"
+#include "headers/inode.h"
 
 int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai){
 

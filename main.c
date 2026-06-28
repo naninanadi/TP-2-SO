@@ -1,5 +1,7 @@
 #include <stdio.h>
-#include "sistemaDeArquivos.h"
+#include <unistd.h>
+#include <io.h>
+#include "headers/sistemaDeArquivos.h"
 
 void configurarSistema(SistemaDeArquivos *fs);
 void terminal(SistemaDeArquivos *fs, FILE *input);
@@ -71,23 +73,46 @@ void configurarSistema(SistemaDeArquivos *fs){
 
 #include <string.h>
 
+#include <unistd.h> // Para isatty
+
 void terminal(SistemaDeArquivos *fs, FILE *input){
+    
     char linha[256];
+    // Descobre se a entrada é um arquivo de script (0) ou o terminal interativo (1)
+    int modo_interativo = isatty(fileno(input));
+
     while(1){
-       char caminho[256];
+        char caminho[256];
         obterCaminho(fs, caminho);
+        
+        // Printa o prompt obrigatório (sempre)
         printf("\033[1;32musuario@fs\033[0m:\033[1;34m%s$\033[0m ", caminho);
-        if (fgets(linha, sizeof(linha), input) == NULL)
-        break;
+        
+        if (fgets(linha, sizeof(linha), input) == NULL) {
+            // Se o arquivo acabou e não teve quebra de linha, solta um \n para o shell real não quebrar
+            if (!modo_interativo) printf("\n");
+            break;
+        }
+            
+        // Se for arquivo, "simula" a digitação do usuário mostrando o comando e pulando a linha
+        if (!modo_interativo) {
+            printf("%s", linha); 
+            // Se por acaso a linha não terminar com \n (última linha do arquivo), a gente garante ele
+            if (linha[strlen(linha) - 1] != '\n') {
+                printf("\n");
+            }
+        }
+
         linha[strcspn(linha, "\n")] = '\0';
         char *cmd = strtok(linha, " ");
         if (!cmd)
             continue;
+            
         if(strcmp(cmd,"exit")==0)
             break;
+            
         else if(strcmp(cmd,"help")==0){
-            printf("\n");
-            printf("help\n");
+            printf("\nhelp\n");
             printf("mkdir <nome>\n");
             printf("rmdir <nome>\n");
             printf("ls\n");
@@ -105,8 +130,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
 
         else if(strcmp(cmd,"mkdir")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: mkdir <nome>\n");
                 continue;
             }
@@ -117,14 +141,12 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             pwd(fs);
         }
 
-        else if(strcmp(cmd,"rmdir")==0)
-        {
+        else if(strcmp(cmd,"rmdir")==0) {
             char *nome = strtok(NULL," ");
             if(nome == NULL){
                 printf("Uso: rmdir <nome>\n");
                 continue;
             }
-
             removerDiretorio(fs,nome);
         }
 
@@ -139,8 +161,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
 
         else if(strcmp(cmd,"rm")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: rm <arquivo>\n");
                 continue;
             }
@@ -166,8 +187,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
 
         else if(strcmp(cmd,"cat")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: cat <arquivo>\n");
                 continue;
             }
@@ -187,8 +207,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
         else if(strcmp(cmd,"mv")==0){
             char *arquivo = strtok(NULL," ");
             char *destino = strtok(NULL," ");
-            if(arquivo==NULL || destino==NULL)
-            {
+            if(arquivo==NULL || destino==NULL) {
                 printf("Uso: mv <arquivo> <destino>\n");
                 continue;
             }
@@ -202,7 +221,6 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 printf("Uso: import <arquivo_simulado> <arquivo_real>\n");
                 continue;
             }
-
             importarArquivo(fs,arquivo,real);
         }
 

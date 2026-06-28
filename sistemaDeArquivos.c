@@ -1,4 +1,4 @@
-#include "sistemaDeArquivos.h"
+#include "headers/sistemaDeArquivos.h"
 
 static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]){
     Diretorio *dir = &fs->diretorios[diretorioPai];
@@ -6,11 +6,7 @@ static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]){
     for(int i = 0; i < dir->qtdFilhos; i++){
         int id = dir->filhos[i];
 
-        if(strcmp(fs->inodes[id].nome,
-                nome
-            ) == 0
-        )
-        {
+        if(strcmp(fs->inodes[id].nome, nome) == 0){
             return id;
         }
     }
@@ -18,27 +14,23 @@ static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]){
     return -1;
 }
 
-static int removerFilho(Diretorio *dir, int id)
-{
+static int removerFilho(Diretorio *dir, int id){
     int pos = -1;
 
     // Procura em qual posição do array 'filhos' o ID está
-    for (int i = 0; i < dir->qtdFilhos; i++)
-    {
-        if (dir->filhos[i] == id)
-        {
+    for (int i = 0; i < dir->qtdFilhos; i++){
+        if (dir->filhos[i] == id) {
             pos = i;
             break;
         }
     }
 
-    // Se não achou o arquivo nesse diretório, retorna erro
+    // Se não achou o arquivo neste diretório, retorna erro
     if (pos == -1)
         return -1;
 
     // Desloca todos os filhos seguintes uma posição para trás
-    for (int i = pos; i < dir->qtdFilhos - 1; i++)
-    {
+    for (int i = pos; i < dir->qtdFilhos - 1; i++){
         dir->filhos[i] = dir->filhos[i + 1];
     }
 
@@ -51,10 +43,8 @@ static int removerFilho(Diretorio *dir, int id)
     return 0;
 }
 
-static int inserirFilho(Diretorio *dir, int id)
-{
-    if (dir->qtdFilhos >= MAX_FILHOS)
-    {
+static int inserirFilho(Diretorio *dir, int id){
+    if (dir->qtdFilhos >= MAX_FILHOS){
         return -1; // Diretório cheio
     }
 
@@ -65,12 +55,8 @@ static int inserirFilho(Diretorio *dir, int id)
     return 0;
 }
 
-void destruirFS(SistemaDeArquivos *fs)
-{
-    for(int i = 0;
-        i < fs->super.totalBlocos;
-        i++)
-    {
+void destruirFS(SistemaDeArquivos *fs) {
+    for(int i = 0; i < fs->super.totalBlocos; i++){
         free(fs->blocos[i].dados);
     }
 
