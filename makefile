@@ -20,5 +20,7 @@ $(TARGET): $(OBJS)
 clean:
 	del /Q *.o *.exe 2>nul || rm -f *.o *.exe
 
+ARQ ?=
+
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(ARQ)

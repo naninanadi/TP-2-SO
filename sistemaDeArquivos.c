@@ -321,20 +321,21 @@ void listarConteudoArquivo(SistemaDeArquivos *fs, char nome[]){
         return;
 
     char *buffer =
-        malloc(fs->super.tamanhoBloco);
+        malloc(fs->super.tamanhoBloco+1);
 
+          printf("\n");
     for(int i=0;
         i<fs->inodes[id].quantidadeBlocos;
         i++)
     {
-        lerBloco(
-            fs,
-            fs->inodes[id].blocos[i],
-            buffer
-        );
+        lerBloco(fs, fs->inodes[id].blocos[i], buffer );
+
+        buffer[fs->blocos[fs->inodes[id].blocos[i]].bytesUtilizados] = '\0';
 
         printf("%s", buffer);
     }
+    printf("\n");
+      printf("\n");
 
     free(buffer);
 }
@@ -393,10 +394,10 @@ int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArqu
             return -1;
         }
 
-        printf("%d\n", indiceBloco);
+        // printf("%d\n", indiceBloco);
         
         fs->blocos[indiceBloco].usado = 1;
-        printf("oi\n");
+        // printf("oi\n");
         fs->super.blocosLivres--;
         
         int bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo);
@@ -652,8 +653,13 @@ static void desenharArvoreRecursivo(SistemaDeArquivos *fs, int idAtual, int nive
     if (fs->inodes[idAtual].tipo == DIRETORIO)
     {
         // Destaca diretórios (pode usar códigos de cor ANSI se quiser, ex: \033[1;34m)
-        printf("[%s/]\n", fs->inodes[idAtual].nome);
+        if (nivel == 0) {
+            printf("[%s]\n", fs->inodes[idAtual].nome);
+        } else {
+            printf("[%s/]\n", fs->inodes[idAtual].nome);
+        }
     }
+
     else
     {
         printf("%s (%d bytes, %d blocos)\n", 
@@ -693,12 +699,64 @@ static void desenharArvoreRecursivo(SistemaDeArquivos *fs, int idAtual, int nive
 // Função principal que o usuário chama
 void exibirArvore(SistemaDeArquivos *fs)
 {
-    printf("\n========================================\n");
-    printf("        ÁRVORE DO SISTEMA DE ARQUIVOS     \n");
-    printf("========================================\n");
+    // printf("\n========================================\n");
+    // printf("        ARVORE DO SISTEMA DE ARQUIVOS     \n");
+    // printf("========================================\n");
     
     // Começa a partir da raiz (ID 0)
+    printf("\n");
     desenharArvoreRecursivo(fs, fs->raiz, 0, 1, "");
-    
-    printf("========================================\n");
+    printf("\n");
+    // printf("========================================\n");
+}
+
+void pwd(SistemaDeArquivos *fs)
+{
+    int caminho[MAX_INODES];
+    int n = 0;
+
+    int atual = fs->diretorioAtual;
+
+    while (atual != -1)
+    {
+        caminho[n++] = atual;
+        atual = fs->inodes[atual].pai;
+    }
+        printf("\n");
+    printf("/");
+
+    for (int i = n - 2; i >= 0; i--)
+    {
+        printf("%s", fs->inodes[caminho[i]].nome);
+
+        if (i != 0)
+            printf("/");
+    }
+
+    printf("\n");
+        printf("\n");
+}
+
+void obterCaminho(SistemaDeArquivos *fs, char *caminhoFinal)
+{
+    int caminho[MAX_INODES];
+    int n = 0;
+
+    int atual = fs->diretorioAtual;
+
+    while (atual != -1)
+    {
+        caminho[n++] = atual;
+        atual = fs->inodes[atual].pai;
+    }
+
+    strcpy(caminhoFinal, "/");
+
+    for (int i = n - 2; i >= 0; i--)
+    {
+        strcat(caminhoFinal, fs->inodes[caminho[i]].nome);
+
+        if (i != 0)
+            strcat(caminhoFinal, "/");
+    }
 }

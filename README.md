@@ -1,0 +1,1 @@
+pra rodar usa mingw32-make run pra ser terminal no windows e mingw32-make run ARQ=nomearquivo.txt
