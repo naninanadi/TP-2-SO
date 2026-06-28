@@ -3,6 +3,7 @@
 #include <string.h>
 #include "headers/sistemaDeArquivos.h"
 
+extern int modo_verboso;
 
 void configurarSistema(SistemaDeArquivos *fs);
 void terminal(SistemaDeArquivos *fs, FILE *input);

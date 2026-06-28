@@ -11,6 +11,11 @@ int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai){
 
     for(int i = 0; i < MAX_INODES; i++){
         if(!tabela[i].usado){
+
+            if (modo_verboso) {
+                printf("\033[1;33m[VERBOSO]\033[0m inode.c -> Encontrado i-node livre no índice [%d]. Alocando para '%s'.\n", i, nome);
+            }
+
             tabela[i].usado = 1;
 
             tabela[i].id = i;
@@ -37,6 +42,9 @@ int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai){
 }
 
 void removerInode(Inode tabela[], int id){
+    if (modo_verboso) {
+            printf("\033[1;33m[VERBOSO]\033[0m inode.c -> Liberando i-node [%d] (Nome: '%s') na tabela de i-nodes.\n", id, tabela[id].nome);
+    }
     tabela[id].usado = 0;
 }
 
