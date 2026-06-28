@@ -26,6 +26,9 @@ typedef struct {
     int raiz;
     int diretorioAtual;
 
+    int qtdArquivos;
+    int qtdDiretorios;
+
     int lixeira;
 
 } SistemaDeArquivos;
@@ -61,6 +64,7 @@ int mover(SistemaDeArquivos *fs, char nome[], char destino[]);
 int apagar(SistemaDeArquivos *fs, char nome[]);
 int apagarDaLixeira(SistemaDeArquivos *fs, char nome[]);
 int restaurarDaLixeira(SistemaDeArquivos *fs, char nome[]);
+void usoDoDisco(SistemaDeArquivos *fs);
 
 //gerais
 
