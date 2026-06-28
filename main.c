@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <io.h>
 #include "headers/sistemaDeArquivos.h"
 
@@ -70,10 +71,6 @@ void configurarSistema(SistemaDeArquivos *fs){
     printf("\nSistema inicializado com sucesso!\n");
     printf("Digite 'help' para listar os comandos.\n\n");
 }
-
-#include <string.h>
-
-#include <unistd.h> // Para isatty
 
 void terminal(SistemaDeArquivos *fs, FILE *input){
     
