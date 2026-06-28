@@ -44,25 +44,6 @@ static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
     }
     int paiId = fs->inodes[id].pai;
     Diretorio *paiDir = &fs->diretorios[paiId];
-    
-    // Procura nas entradas do diretório pai qual delas aponta para o ID atual
-    for (int i = 0; i < paiDir->qtdFilhos; i++) {
-        if (paiDir->filhos[i].inodeId == id) {
-            strcpy(destino, paiDir->filhos[i].nome);
-            return;
-        }
-    }
-    strcpy(destino, "desconhecido");
-}
-
-// Função auxiliar essencial para descobrir o nome de um i-node olhando pelo pai dele
-static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
-    if (id == fs->raiz) {
-        strcpy(destino, "/");
-        return;
-    }
-    int paiId = fs->inodes[id].pai;
-    Diretorio *paiDir = &fs->diretorios[paiId];
     for (int i = 0; i < paiDir->qtdFilhos; i++) {
         if (paiDir->filhos[i].inodeId == id) {
             strcpy(destino, paiDir->filhos[i].nome);
