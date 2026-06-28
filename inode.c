@@ -5,6 +5,8 @@
 #include "headers/inode.h"
 #include "headers/sistemaDeArquivos.h"
 
+extern int modo_verboso;
+
 int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai){
 
     for(int i = 0; i < MAX_INODES; i++){

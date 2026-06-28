@@ -1,4 +1,34 @@
+#include <stdarg.h>
 #include "headers/sistemaDeArquivos.h"
+
+int modo_verboso = 0;
+
+void log_verboso(const char *format, ...) {
+    if (modo_verboso) {
+        printf("\033[1;33m[VERBOSO]\033[0m "); // [VERBOSO] em Amarelo Negrito
+        va_list args;
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+    }
+}
+
+void exibirMapeamentoBlocos(SistemaDeArquivos *fs) {
+    printf("\n=== BITMAP / MAPA VISUAL DOS BLOCOS DE DADOS ===\n");
+    printf("Total de blocos: %-5d | Livres: %-5d | Usados: %-5d\n\n", 
+            fs->super.totalBlocos, fs->super.blocosLivres, fs->super.totalBlocos - fs->super.blocosLivres);
+    
+    for (int i = 0; i < fs->super.totalBlocos; i++) {
+        if (fs->blocos[i].usado) {
+            printf("\033[1;31m[X]\033[0m "); // Vermelho para ocupado
+        } else {
+            printf("[.] "); // Padrão/Branco para livre
+        }
+        
+        if ((i + 1) % 16 == 0) printf("\n"); // Quebra a linha a cada 16 blocos
+    }
+    printf("\n================================================\n");
+}
 
 static int procurarFilho(SistemaDeArquivos *fs, int diretorioPai, char nome[]){
     Diretorio *dir = &fs->diretorios[diretorioPai];

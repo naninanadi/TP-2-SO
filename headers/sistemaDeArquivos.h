@@ -62,3 +62,7 @@ int apagar(SistemaDeArquivos *fs, char nome[]);
 
 void imprimirEstadoSistema(SistemaDeArquivos *fs);
 void exibirArvore(SistemaDeArquivos *fs);
+
+extern int modo_verboso;
+void log_verboso(const char *format, ...);
+void exibirMapeamentoBlocos(SistemaDeArquivos *fs);

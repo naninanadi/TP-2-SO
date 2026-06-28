@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <io.h>
 #include "headers/sistemaDeArquivos.h"
+
 
 void configurarSistema(SistemaDeArquivos *fs);
 void terminal(SistemaDeArquivos *fs, FILE *input);
@@ -71,30 +71,24 @@ void configurarSistema(SistemaDeArquivos *fs){
     printf("\nSistema inicializado com sucesso!\n");
     printf("Digite 'help' para listar os comandos.\n\n");
 }
-
 void terminal(SistemaDeArquivos *fs, FILE *input){
     
     char linha[256];
-    // Descobre se a entrada é um arquivo de script (0) ou o terminal interativo (1)
     int modo_interativo = isatty(fileno(input));
 
     while(1){
         char caminho[256];
         obterCaminho(fs, caminho);
         
-        // Printa o prompt obrigatório (sempre)
         printf("\033[1;32musuario@fs\033[0m:\033[1;34m%s$\033[0m ", caminho);
         
         if (fgets(linha, sizeof(linha), input) == NULL) {
-            // Se o arquivo acabou e não teve quebra de linha, solta um \n para o shell real não quebrar
             if (!modo_interativo) printf("\n");
             break;
         }
             
-        // Se for arquivo, "simula" a digitação do usuário mostrando o comando e pulando a linha
         if (!modo_interativo) {
             printf("%s", linha); 
-            // Se por acaso a linha não terminar com \n (última linha do arquivo), a gente garante ele
             if (linha[strlen(linha) - 1] != '\n') {
                 printf("\n");
             }
@@ -123,8 +117,32 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             printf("mv <arquivo> <destino>\n");
             printf("cat <arquivo>\n");
             printf("import <arquivo_simulado> <arquivo_real>\n");
+            printf("verbose <on/off>\n");
+            printf("mapa\n");
             printf("exit\n\n");
         }
+        // ==========================================================
+        else if(strcmp(cmd,"verbose")==0){
+            char *opcao = strtok(NULL, " ");
+            if(opcao == NULL){
+                printf("Uso: verbose <on/off>\n");
+                continue;
+            }
+            if(strcmp(opcao, "on") == 0){
+                modo_verboso = 1;
+                printf("Modo verboso ATIVADO. Operacoes internas do i-node/blocos serao listadas.\n");
+            } else if(strcmp(opcao, "off") == 0){
+                modo_verboso = 0;
+                printf("Modo verboso DESATIVADO.\n");
+            } else {
+                printf("Opcao invalida. Use 'verbose on' ou 'verbose off'.\n");
+            }
+        }
+
+        else if(strcmp(cmd,"mapa")==0 || strcmp(cmd,"bitmap")==0){
+            exibirMapeamentoBlocos(fs);
+        }
+        // ==========================================================
 
         else if(strcmp(cmd,"mkdir")==0){
             char *nome = strtok(NULL," ");
