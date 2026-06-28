@@ -247,6 +247,15 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             apagarDaLixeira(fs,nome);
         }
 
+        else if(strcmp(cmd,"restore")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: restore <arquivo>\n");
+                continue;
+            }
+            restaurarDaLixeira(fs,nome);
+        }
+
         else{
             printf("Comando desconhecido. Digite 'help'.\n");
         }

@@ -60,6 +60,7 @@ int renomear(SistemaDeArquivos *fs, char nomeAtual[], char novoNome[]);
 int mover(SistemaDeArquivos *fs, char nome[], char destino[]);
 int apagar(SistemaDeArquivos *fs, char nome[]);
 int apagarDaLixeira(SistemaDeArquivos *fs, char nome[]);
+int restaurarDaLixeira(SistemaDeArquivos *fs, char nome[]);
 
 //gerais
 
