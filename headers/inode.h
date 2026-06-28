@@ -32,6 +32,7 @@ typedef struct {
     time_t acessado;
 
     int pai;
+    int paiOriginal;
 
 } Inode;
 

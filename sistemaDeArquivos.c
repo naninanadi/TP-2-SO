@@ -122,7 +122,9 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
 
     fs->raiz = 0;
     fs->diretorioAtual = 0;
+    fs->lixeira = 1;
 
+    // Inicializa a raiz no FS
     fs->inodes[0].usado = 1;
     fs->inodes[0].id = 0;
     fs->inodes[0].tipo = DIRETORIO;
@@ -136,6 +138,7 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
 
     log_verboso("FS Criado: %d blocos de %d bytes alocados em memoria.\n", fs->super.totalBlocos, tamanhoBloco);
     log_verboso("Diretorio raiz '/' criado e mapeado no i-node [0].\n");
+    criarDiretorio(fs, ".lixeira");
 }
 
 // Diretorio
@@ -527,6 +530,47 @@ int apagar(SistemaDeArquivos *fs, char nome[])
     }
 
     log_verboso("Varrer mapa de blocos do i-node %d para desalocacao fisica...\n", id);
+    // 3. Remove o arquivo da lista de filhos do diretório atual
+    Diretorio *pai = &fs->diretorios[atual];
+    if (removerFilho(pai, id) == -1)
+    {
+        printf("Erro interno ao remover o arquivo do diretorio pai.\n");
+        return -1;
+    }
+    else{
+        // 3.1 Adiciona o arquivo na lixeira
+        inserirFilho(&fs->diretorios[fs->lixeira], id);
+        // 3.2 Adiciona o pai original para saber qual era o diretorio em que estava
+        fs->inodes[id].paiOriginal = atual;
+        // 3.3 Diz que o pai do arquivo é a lixeira
+        fs->inodes[id].pai = fs->lixeira;
+    }
+
+    printf("Arquivo '%s' apagado com sucesso e blocos liberados!\n", nome);
+    return 0;
+}
+
+int apagarDaLixeira(SistemaDeArquivos *fs, char nome[])
+{
+    int atual = fs->diretorioAtual;
+
+    // 1. Procura o arquivo no diretório atual
+    int id = procurarFilho(fs, atual, nome);
+
+    if (id == -1)
+    {
+        printf("Erro! Arquivo nao encontrado.\n");
+        return -1;
+    }
+
+    // Garante que o que estamos apagando é um ARQUIVO e não um diretório
+    if (fs->inodes[id].tipo != ARQUIVO)
+    {
+        printf("Erro! '%s' nao e um arquivo (e um diretorio).\n", nome);
+        return -1;
+    }
+
+    // 2. Libera todos os blocos de dados associados a este arquivo
     for (int i = 0; i < fs->inodes[id].quantidadeBlocos; i++)
     {
         int blocoParaLiberar = fs->inodes[id].blocos[i];
@@ -564,6 +608,44 @@ void exibirMapeamentoBlocos(SistemaDeArquivos *fs) {
         if ((i + 1) % 16 == 0) printf("\n"); // Quebra a linha a cada 16 blocos
     }
     printf("\n================================================\n");
+}
+int restaurarDaLixeira(SistemaDeArquivos *fs, char nome[])
+{
+    int atual = fs->lixeira;
+
+    // 1. Procura o arquivo no diretório atual
+    int id = procurarFilho(fs, atual, nome);
+
+    if (id == -1)
+    {
+        printf("Erro! Arquivo nao encontrado.\n");
+        return -1;
+    }
+
+    // Garante que o que estamos apagando é um ARQUIVO e não um diretório
+    if (fs->inodes[id].tipo != ARQUIVO)
+    {
+        printf("Erro! '%s' nao e um arquivo (e um diretorio).\n", nome);
+        return -1;
+    }
+
+    // 3. Remove o arquivo da lista de filhos do diretório atual
+    Diretorio *pai = &fs->diretorios[atual];
+    if (removerFilho(pai, id) == -1)
+    {
+        printf("Erro interno ao remover o arquivo do diretorio pai.\n");
+        return -1;
+    }
+    else{
+        // 3.1 Adiciona o arquivo na lixeira
+        inserirFilho(&fs->diretorios[fs->inodes[id].paiOriginal], id);
+        // 3.2 Devolve o "pai" para o diretorio de origem
+        fs->inodes[id].pai = fs->inodes[id].paiOriginal;
+    }
+
+    printf("Arquivo '%s' foi restaurado com sucesso!\n", nome);
+    return 0;
+
 }
 
 void imprimirEstadoSistema(SistemaDeArquivos *fs)

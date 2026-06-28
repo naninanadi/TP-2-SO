@@ -114,6 +114,8 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             printf("cd <diretorio>\n");
             printf("touch <arquivo>\n");
             printf("rm <arquivo>\n");
+            printf("rmt <arquivo>\n");
+            printf("restore <arquivo>\n");
             printf("rename <antigo> <novo>\n");
             printf("mv <arquivo> <destino>\n");
             printf("cat <arquivo>\n");
@@ -255,6 +257,24 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 continue;
             }
             importarArquivo(fs,arquivo,real);
+        }
+
+        else if(strcmp(cmd,"rmt")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: rmt <arquivo>\n");
+                continue;
+            }
+            apagarDaLixeira(fs,nome);
+        }
+
+        else if(strcmp(cmd,"restore")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: restore <arquivo>\n");
+                continue;
+            }
+            restaurarDaLixeira(fs,nome);
         }
 
         else{

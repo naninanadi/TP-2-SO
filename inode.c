@@ -25,6 +25,8 @@ int criarInode(Inode tabela[], TipoInode tipo, char nome[], int pai){
             strcpy(tabela[i].nome, nome);
 
             tabela[i].pai = pai;
+            
+            tabela[i].paiOriginal = pai;
 
             tabela[i].tamanho = 0;
 
