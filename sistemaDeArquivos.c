@@ -117,7 +117,9 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
 
     fs->raiz = 0;
     fs->diretorioAtual = 0;
+    fs->lixeira = 1;
 
+    // Inicializa a raiz no FS
     fs->inodes[0].usado = 1;
     fs->inodes[0].id = 0;
 
@@ -134,6 +136,8 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
     fs->inodes[0].acessado = time(NULL);
 
     fs->super.inodesLivres--;
+
+    criarDiretorio(fs, ".lixeira");
 }
 
 // Diretorio
@@ -545,6 +549,58 @@ int mover(SistemaDeArquivos *fs, char nome[], char destino[])
 }
 
 int apagar(SistemaDeArquivos *fs, char nome[])
+{
+    int atual = fs->diretorioAtual;
+
+    // 1. Procura o arquivo no diretório atual
+    int id = procurarFilho(fs, atual, nome);
+
+    if (id == -1)
+    {
+        printf("Erro! Arquivo nao encontrado.\n");
+        return -1;
+    }
+
+    // Garante que o que estamos apagando é um ARQUIVO e não um diretório
+    if (fs->inodes[id].tipo != ARQUIVO)
+    {
+        printf("Erro! '%s' nao e um arquivo (e um diretorio).\n", nome);
+        return -1;
+    }
+
+    // 2. Libera todos os blocos de dados associados a este arquivo
+    // for (int i = 0; i < fs->inodes[id].quantidadeBlocos; i++)
+    // {
+    //     int blocoParaLiberar = fs->inodes[id].blocos[i];
+    //     if (blocoParaLiberar != -1)
+    //     {
+    //         liberarBloco(fs, blocoParaLiberar);
+    //     }
+    // }
+
+    // 3. Remove o arquivo da lista de filhos do diretório atual
+    Diretorio *pai = &fs->diretorios[atual];
+    if (removerFilho(pai, id) == -1)
+    {
+        printf("Erro interno ao remover o arquivo do diretorio pai.\n");
+        return -1;
+    }
+    // 3.1 Adiciona o arquivo na lixeira
+    else{
+        inserirFilho(&fs->diretorios[fs->lixeira], id);
+    }
+
+    // 4. Libera o i-node na tabela de i-nodes
+    removerInode(fs->inodes, id);
+
+    // 5. Atualiza os contadores do SuperBloco
+    fs->super.inodesLivres++;
+
+    printf("Arquivo '%s' apagado com sucesso e blocos liberados!\n", nome);
+    return 0;
+}
+
+int apagarDaLixeira(SistemaDeArquivos *fs, char nome[])
 {
     int atual = fs->diretorioAtual;
 

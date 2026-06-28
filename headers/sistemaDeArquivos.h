@@ -26,6 +26,8 @@ typedef struct {
     int raiz;
     int diretorioAtual;
 
+    int lixeira;
+
 } SistemaDeArquivos;
 
 #endif
@@ -57,6 +59,7 @@ int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino);
 int renomear(SistemaDeArquivos *fs, char nomeAtual[], char novoNome[]);
 int mover(SistemaDeArquivos *fs, char nome[], char destino[]);
 int apagar(SistemaDeArquivos *fs, char nome[]);
+int apagarDaLixeira(SistemaDeArquivos *fs, char nome[]);
 
 //gerais
 

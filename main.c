@@ -238,6 +238,15 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             importarArquivo(fs,arquivo,real);
         }
 
+        else if(strcmp(cmd,"rmt")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: rmt <arquivo>\n");
+                continue;
+            }
+            apagarDaLixeira(fs,nome);
+        }
+
         else{
             printf("Comando desconhecido. Digite 'help'.\n");
         }
