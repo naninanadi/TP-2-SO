@@ -223,6 +223,11 @@ int removerDiretorio(SistemaDeArquivos *fs, char nome[]){
 
     int id = procurarFilho(fs, fs->diretorioAtual, nome);
 
+    if(id == 1){
+        printf("Esse diretorio nao pode ser removido!\n");
+        return -1;
+    }
+
     if(id == -1){
         printf("Erro! Diretorio inexistente!\n");
         return -1;
