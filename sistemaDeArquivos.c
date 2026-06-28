@@ -37,6 +37,24 @@ static int removerFilho(Diretorio *dir, int id) {
     return 0;
 }
 
+static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
+    if (id == fs->raiz) {
+        strcpy(destino, "/");
+        return;
+    }
+    int paiId = fs->inodes[id].pai;
+    Diretorio *paiDir = &fs->diretorios[paiId];
+    
+    // Procura nas entradas do diretório pai qual delas aponta para o ID atual
+    for (int i = 0; i < paiDir->qtdFilhos; i++) {
+        if (paiDir->filhos[i].inodeId == id) {
+            strcpy(destino, paiDir->filhos[i].nome);
+            return;
+        }
+    }
+    strcpy(destino, "desconhecido");
+}
+
 // Função auxiliar essencial para descobrir o nome de um i-node olhando pelo pai dele
 static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
     if (id == fs->raiz) {
@@ -235,6 +253,31 @@ void pwd(SistemaDeArquivos *fs) {
         if (i != 0) printf("/");
     }
     printf("\n");
+}
+
+void obterCaminho(SistemaDeArquivos *fs, char *caminhoFinal) {
+    int caminho[MAX_INODES];
+    int n = 0;
+    int atual = fs->diretorioAtual;
+
+    while (atual != -1) {
+        caminho[n++] = atual;
+        atual = fs->inodes[atual].pai;
+    }
+
+    strcpy(caminhoFinal, "/");
+
+    for (int i = n - 2; i >= 0; i--) {
+        char nomePasta[MAX_NOME];
+        
+        obterNomeDoInode(fs, caminho[i], nomePasta);
+        
+        strcat(caminhoFinal, nomePasta);
+
+        if (i != 0) {
+            strcat(caminhoFinal, "/");
+        }
+    }
 }
 
 // --- VISUALIZAÇÃO GRÁFICA DA ÁRVORE TOTALMENTE CORRIGIDA ---

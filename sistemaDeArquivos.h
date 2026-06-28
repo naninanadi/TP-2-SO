@@ -23,6 +23,7 @@ typedef struct {
 void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco);
 void destruirFS(SistemaDeArquivos *fs);
 void pwd(SistemaDeArquivos *fs);
+void obterCaminho(SistemaDeArquivos *fs, char *caminhoFinal);
 void exibirArvore(SistemaDeArquivos *fs);
 
 int criarDiretorio(SistemaDeArquivos *fs, char nome[]);
