@@ -119,10 +119,9 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             printf("cat <arquivo>\n");
             printf("import <arquivo_simulado> <arquivo_real>\n");
             printf("verbose <on/off>\n");
-            printf("mapa\n");
+            printf("map\n");
             printf("rmt <arquivo>\n");
             printf("restore <arquivo>\n");
-            printf("detalhes\n");
             printf("exit\n\n");
         }
         // ==========================================================
@@ -143,7 +142,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             }
         }
 
-        else if(strcmp(cmd,"mapa")==0 || strcmp(cmd,"bitmap")==0){
+        else if(strcmp(cmd,"map")==0){
             exibirMapeamentoBlocos(fs);
         }
         // ==========================================================
@@ -276,10 +275,6 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 continue;
             }
             restaurarDaLixeira(fs,nome);
-        }
-
-        else if(strcmp(cmd,"detalhes")==0){
-            usoDoDisco(fs);
         }
 
         else{
