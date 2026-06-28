@@ -1,3 +1,4 @@
+#include <math.h>
 #include "headers/sistemaDeArquivos.h"
 #include <stdarg.h> // Necessário para a função log_verboso (va_list)
 
@@ -124,6 +125,9 @@ void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco){
     fs->diretorioAtual = 0;
     fs->lixeira = 1;
 
+    fs->qtdArquivos = 0;
+    fs->qtdDiretorios = 0;
+
     // Inicializa a raiz no FS
     fs->inodes[0].usado = 1;
     fs->inodes[0].id = 0;
@@ -169,6 +173,7 @@ int criarDiretorio(SistemaDeArquivos *fs, char nome[]){
     fs->super.inodesLivres--;
     log_verboso("Diretorio '%s' indexado com sucesso. I-nodes livres: %d.\n", nome, fs->super.inodesLivres);
 
+    fs->qtdDiretorios++;
     return 0;
 }
 
@@ -224,6 +229,11 @@ int removerDiretorio(SistemaDeArquivos *fs, char nome[]){
     log_verboso("Comando rmdir: Solicitada a remocao do diretorio '%s'.\n", nome);
     int id = procurarFilho(fs, fs->diretorioAtual, nome);
 
+    if(id == 1){
+        printf("Esse diretorio nao pode ser removido!\n");
+        return -1;
+    }
+
     if(id == -1){
         printf("Erro! Diretorio inexistente!\n");
         return -1;
@@ -269,6 +279,7 @@ int removerDiretorio(SistemaDeArquivos *fs, char nome[]){
 // Arquivo
 
 int criarArquivo(SistemaDeArquivos *fs, char nome[]){
+
     int atual = fs->diretorioAtual;
     log_verboso("Comando touch: Criando entrada vazia para arquivo '%s' no diretorio ID %d.\n", nome, atual);
 
@@ -296,6 +307,8 @@ int criarArquivo(SistemaDeArquivos *fs, char nome[]){
 
     fs->super.inodesLivres--;
     log_verboso("Arquivo criado com sucesso (Tamanho: 0 bytes, i-node: %d).\n", id);
+    fs->qtdArquivos++;
+
     return 0;
 }
 
@@ -746,4 +759,36 @@ void obterCaminho(SistemaDeArquivos *fs, char *caminhoFinal)
         strcat(caminhoFinal, fs->inodes[caminho[i]].nome);
         if (i != 0) strcat(caminhoFinal, "/");
     }
+}
+
+void usoDoDisco(SistemaDeArquivos *fs)
+{
+    printf("Analise do uso do disco\n");
+
+    printf("%d", fs->super.blocosLivres);
+
+    printf("\n========== Sistema de Arquivos ==========\n");
+    int espacoTotal = floor(fs->super.tamanhoDisco / 1024);
+    printf("\nEspaco total: %dMB\n", espacoTotal);
+    int espacoUtilizado = floor((fs->super.tamanhoDisco - fs->super.tamanhoBloco * (fs->super.totalBlocos - fs->super.blocosLivres)) / 1024);
+    printf("Espaco utilizado: %dMB\n", espacoUtilizado);
+    int espacoLivre = floor((fs->super.blocosLivres * fs->super.tamanhoBloco) / 1024);
+    printf("Espaco livre: %dMB\n", espacoLivre);
+
+    printf("\nBlocos");
+    printf("Total: %d\n", fs->super.totalBlocos);
+    printf("Livres: %d\n", fs->super.blocosLivres);
+    int blocosOcupados = fs->super.totalBlocos - fs->super.blocosLivres;
+    printf("Ocupados: %d\n", blocosOcupados);
+
+    printf("\nInodes");
+    printf("Total: %d\n", fs->super.totalInodes);
+    printf("Livres: %d\n", fs->super.inodesLivres);
+    int inodesOcupados = fs->super.totalInodes - fs->super.inodesLivres;
+    printf("Ocupados: %d\n", inodesOcupados);
+
+    printf("\nArquivos: %d\n", fs->qtdArquivos);
+    printf("Diretorios: %d\n", fs->qtdDiretorios);
+
+    printf("\n=========================================\n");
 }

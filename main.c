@@ -114,14 +114,15 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             printf("cd <diretorio>\n");
             printf("touch <arquivo>\n");
             printf("rm <arquivo>\n");
-            printf("rmt <arquivo>\n");
-            printf("restore <arquivo>\n");
             printf("rename <antigo> <novo>\n");
             printf("mv <arquivo> <destino>\n");
             printf("cat <arquivo>\n");
             printf("import <arquivo_simulado> <arquivo_real>\n");
             printf("verbose <on/off>\n");
             printf("mapa\n");
+            printf("rmt <arquivo>\n");
+            printf("restore <arquivo>\n");
+            printf("detalhes\n");
             printf("exit\n\n");
         }
         // ==========================================================
@@ -275,6 +276,10 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 continue;
             }
             restaurarDaLixeira(fs,nome);
+        }
+
+        else if(strcmp(cmd,"detalhes")==0){
+            usoDoDisco(fs);
         }
 
         else{
