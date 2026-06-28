@@ -54,3 +54,4 @@ tree
 stat relatorio.txt
 stat arqteste.txt
 stat arqteste2.txt
+detalhes

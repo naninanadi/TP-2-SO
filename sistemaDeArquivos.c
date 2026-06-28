@@ -845,12 +845,12 @@ void usoDoDisco(SistemaDeArquivos *fs)
 {
     printf("Analise do uso do disco\n");
 
-    printf("%d", fs->super.blocosLivres);
-
     printf("\n========== Sistema de Arquivos ==========\n");
     int espacoTotal = floor(fs->super.tamanhoDisco / 1024);
     printf("\nEspaco total: %dMB\n", espacoTotal);
-    int espacoUtilizado = floor((fs->super.tamanhoDisco - fs->super.tamanhoBloco * (fs->super.totalBlocos - fs->super.blocosLivres)) / 1024);
+    int espacoUtilizado = floor((fs->super.tamanhoDisco - 
+        fs->super.tamanhoBloco * 
+        (fs->super.totalBlocos - fs->super.blocosLivres)) / 1024);
     printf("Espaco utilizado: %dMB\n", espacoUtilizado);
     int espacoLivre = floor((fs->super.blocosLivres * fs->super.tamanhoBloco) / 1024);
     printf("Espaco livre: %dMB\n", espacoLivre);
