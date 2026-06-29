@@ -180,18 +180,33 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
         }
 
         else if(strcmp(cmd,"stat")==0){
-            char *nome = strtok(NULL," ");
-            if(nome == NULL) {
-                printf("Uso: stat <nome>\n");
+            char *nome = strtok(NULL, " ");
+            if (nome == NULL) {
+                printf("Uso: stat <arquivo>\n");
                 continue;
             }
 
-            int id = buscarInodePorNome(fs->inodes, nome);
+            int id = -1;
+            // Busca o i-node pelo nome no diretório atual
+            Diretorio *dir = &fs->diretorios[fs->diretorioAtual];
+            for (int i = 0; i < dir->qtdFilhos; i++) {
+                if (strcmp(dir->filhos[i].nome, nome) == 0) {
+                    id = dir->filhos[i].inodeId;
+                    break;
+                }
+            }
 
-            if (id != -1) {
-                exibirInfosInode(fs->inodes, id); 
+            // Atalhos para diretório atual e pai
+            if (strcmp(nome, ".") == 0) {
+                id = fs->diretorioAtual;
+            } else if (strcmp(nome, "..") == 0) {
+                id = fs->inodes[fs->diretorioAtual].pai;
+            }
+
+            if (id == -1) {
+                printf("\033[1;31mArquivo ou diretorio nao encontrado.\033[0m\n");
             } else {
-                printf("Erro: Arquivo ou diretório '%s' não encontrado.\n", nome);
+                exibirInfosInode(fs->inodes, id);
             }
         }
 
