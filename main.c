@@ -82,7 +82,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
         char caminho[256];
         obterCaminho(fs, caminho);
         
-        printf("\033[1;32musuario@fs\033[0m:\033[1;34m%s$\033[0m ", caminho);
+        printf("\033[1;32musuario@fs\033[0m:\033[1;34m~%s\033[0m$ ", caminho);
         
         if (fgets(linha, sizeof(linha), input) == NULL) {
             if (!modo_interativo) printf("\n");

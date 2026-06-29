@@ -12,8 +12,6 @@ typedef enum {
     ARQUIVO,
     DIRETORIO
 } TipoInode;
-
-// Em inode.h
 typedef struct {
     int usado;
     int id;
@@ -30,7 +28,6 @@ typedef struct {
 
 } Inode;
 
-// Ajuste o protótipo (remove o nome)
 int criarInode(Inode tabela[], TipoInode tipo, int pai);
 
 void removerInode(Inode tabela[], int id);

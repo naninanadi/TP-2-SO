@@ -51,8 +51,6 @@ void liberarBloco(SistemaDeArquivos *fs, int bloco);
 int escreverBloco(SistemaDeArquivos *fs, int bloco, const char *dados, int quantidadeBytes);
 int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino);
 
-// void imprimirEstadoSistema(SistemaDeArquivos *fs);
-
 extern int modo_verboso;
 void log_verboso(const char *format, ...);
 void exibirMapeamentoBlocos(SistemaDeArquivos *fs);
