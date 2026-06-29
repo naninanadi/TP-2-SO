@@ -1,0 +1,56 @@
+help
+ls
+mkdir documentos
+mkdir projetos
+mkdir imagens
+tree
+cd documentos
+mkdir faculdade
+mkdir SO
+tree
+cd ..
+pwd
+touch teste.txt
+touch imagem.png
+ls
+import teste.txt texto.txt
+cat teste.txt
+rename imagens Midia
+tree
+rename teste.txt relatorio.txt
+ls
+mv relatorio.txt projetos
+tree
+cd projetos
+ls
+rm relatorio.txt
+ls
+touch relatorio.txt
+touch arqteste.txt
+touch arqteste2.txt
+import arqteste.txt texto.txt
+import arqteste2.txt texto.txt
+ls
+cd ..
+rmdir Midia
+tree
+rmdir documentos
+cd documentos
+pwd
+cd SO
+pwd
+cd ..
+pwd
+cd ..
+pwd
+abc
+mkdir
+touch
+cd
+mv
+rename
+import
+tree
+stat relatorio.txt
+stat arqteste.txt
+stat arqteste2.txt
