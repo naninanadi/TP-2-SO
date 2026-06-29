@@ -5,7 +5,7 @@
 
 #define MAX_NOME 50
 #define MAX_BLOCOS 10
-#define MAX_BLOCOS_ARQUIVO 10
+#define MAX_BLOCOS_ARQUIVO 50
 #define MAX_INODES 256
 
 typedef enum {

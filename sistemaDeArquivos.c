@@ -96,6 +96,16 @@ static void obterNomeDoInode(SistemaDeArquivos *fs, int id, char *destino) {
     strcpy(destino, "desconhecido");
 }
 
+static int encontrarBlocoLivre(SistemaDeArquivos *fs){
+    for (int i = 0; i < fs->super.totalBlocos; i++){
+        if (!fs->blocos[i].usado)
+            return i;
+    }
+
+    return -1;
+}
+
+
 
 void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco) {
     fs->super.tamanhoDisco = tamanhoDisco;
@@ -467,46 +477,81 @@ int criarArquivo(SistemaDeArquivos *fs, char nome[]) {
     return id;
 }
 
-int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]) {
+int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]){
+    log_verboso("Comando importar: Tentando ler do S.O. Real '%s' para o arquivo virtual '%s'.\n", caminhoArquivo, nomeSimulado);
+
     int id = procurarFilho(fs, fs->diretorioAtual, nomeSimulado);
     if (id == -1 || fs->inodes[id].tipo != ARQUIVO) {
-        printf("Arquivo simulado nao encontrado.\n");
+        printf("Erro: Crie o arquivo virtual com 'touch %s' antes de importar dados.\n", nomeSimulado);
         return -1;
     }
-
+    
     FILE *arquivo = fopen(caminhoArquivo, "rb");
-    if (!arquivo) {
+    if (arquivo == NULL) {
+        printf("Erro! Arquivo real nao encontrado no Linux.\n");
         return -1;
     }
-
-    Inode *in = &fs->inodes[id];
-    for (int i = 0; i < in->quantidadeBlocos; i++) {
-        liberarBloco(fs, in->blocos[i]);
+    
+    fseek(arquivo, 0, SEEK_END);
+    long tamanho = ftell(arquivo);
+    rewind(arquivo);
+    
+    int quantidadeBlocos = (tamanho + fs->super.tamanhoBloco - 1) / fs->super.tamanhoBloco;
+    log_verboso("Analise do arquivo real: %ld bytes detectados. Tamanho Bloco: %d bytes. Blocos necessarios: %d.\n", 
+                 tamanho, fs->super.tamanhoBloco, quantidadeBlocos);
+    
+    if (quantidadeBlocos > MAX_BLOCOS_ARQUIVO){
+        printf("Erro! Arquivo excede o limite de %d blocos por arquivo.\n", MAX_BLOCOS_ARQUIVO);
+        fclose(arquivo);
+        return -1;
     }
-    in->quantidadeBlocos = 0;
-    in->tamanho = 0;
-
+    
+    if (quantidadeBlocos > fs->super.blocosLivres){
+        printf("Erro! Espaço insuficiente em disco virtual (%d blocos livres, necessita %d).\n", fs->super.blocosLivres, quantidadeBlocos);
+        fclose(arquivo);
+        return -1;
+    }
+    
+    fs->inodes[id].tamanho = tamanho;
+    fs->inodes[id].quantidadeBlocos = quantidadeBlocos;
+    
     char *buffer = malloc(fs->super.tamanhoBloco);
-    int bytesLidos;
-
-    while ((bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo)) > 0) {
-        if (in->quantidadeBlocos >= MAX_BLOCOS_ARQUIVO) {
-            printf("Erro: Arquivo excede o limite de blocos permitido.\n");
-            break;
-        }
-        int indiceBloco = alocarBloco(fs);
-        if (indiceBloco == -1) {
-            printf("Erro: Disco simulado cheio!\n");
-            break;
-        }
-        escreverBloco(fs, indiceBloco, buffer, bytesLidos);
-        in->blocos[in->quantidadeBlocos++] = indiceBloco;
-        in->tamanho += bytesLidos;
+    if (buffer == NULL){
+        fclose(arquivo);
+        return -1;
     }
-
+    
+    for (int i = 0; i < quantidadeBlocos; i++){
+        log_verboso("Processando indexacao do bloco logico [%d/%d]...\n", i+1, quantidadeBlocos);
+        int indiceBloco = encontrarBlocoLivre(fs);
+        
+        if (indiceBloco == -1){
+            free(buffer);
+            fclose(arquivo);
+            return -1;
+        }
+        
+        log_verboso("-> Alocando bloco fisico livre de indice #%d.\n", indiceBloco);
+        fs->blocos[indiceBloco].usado = 1;
+        fs->super.blocosLivres--;
+        
+        int bytesLidos = fread(buffer, 1, fs->super.tamanhoBloco, arquivo);
+        log_verboso("-> Copiando %d bytes para dentro do bloco #%d.\n", bytesLidos, indiceBloco);
+        
+        memcpy(fs->blocos[indiceBloco].dados, buffer, bytesLidos);
+        fs->blocos[indiceBloco].bytesUtilizados = bytesLidos;
+        
+        fs->inodes[id].blocos[i] = indiceBloco;
+        log_verboso("-> I-node %d apontou vetor 'blocos[%d]' para o bloco fisico #%d.\n", id, i, indiceBloco);
+    }
+    
     free(buffer);
     fclose(arquivo);
-    in->modificado = time(NULL);
+    
+    fs->inodes[id].modificado = time(NULL);
+    fs->inodes[id].acessado = time(NULL);
+    
+    log_verboso("Importacao concluida com sucesso! Metadados de tempo atualizados.\n");
     return 0;
 }
 
@@ -541,6 +586,7 @@ int apagar(SistemaDeArquivos *fs, char nome[]) {
         printf("Erro! '%s' nao e um Arquivo.\n", nome);
         return -1;
     }
+
 
     removerFilho(&fs->diretorios[atual], id);
     inserirFilho(&fs->diretorios[fs->lixeira], id, nome);
