@@ -18,6 +18,12 @@ typedef struct {
     Bloco *blocos;
     int raiz;
     int diretorioAtual;
+
+    int qtdArquivos;
+    int qtdDiretorios;
+
+    int lixeira;
+
 } SistemaDeArquivos;
 
 void inicializarFS(SistemaDeArquivos *fs, int tamanhoDisco, int tamanhoBloco);
@@ -37,10 +43,17 @@ int criarArquivo(SistemaDeArquivos *fs, char nome[]);
 void listarConteudoArquivo(SistemaDeArquivos *fs, char nome[]);
 int importarArquivo(SistemaDeArquivos *fs, char nomeSimulado[], char caminhoArquivo[]);
 int apagar(SistemaDeArquivos *fs, char nome[]);
+int apagarDaLixeira(SistemaDeArquivos *fs, char nome[]);
+int restaurarDaLixeira(SistemaDeArquivos *fs, char nome[]);
 
 int alocarBloco(SistemaDeArquivos *fs);
 void liberarBloco(SistemaDeArquivos *fs, int bloco);
 int escreverBloco(SistemaDeArquivos *fs, int bloco, const char *dados, int quantidadeBytes);
 int lerBloco(SistemaDeArquivos *fs, int bloco, char *destino);
 
+// void imprimirEstadoSistema(SistemaDeArquivos *fs);
+
+extern int modo_verboso;
+void log_verboso(const char *format, ...);
+void exibirMapeamentoBlocos(SistemaDeArquivos *fs);
 #endif

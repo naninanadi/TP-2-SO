@@ -25,6 +25,12 @@ cd projetos
 ls
 rm relatorio.txt
 ls
+touch relatorio.txt
+touch arqteste.txt
+touch arqteste2.txt
+import arqteste.txt texto.txt
+import arqteste2.txt texto.txt
+ls
 cd ..
 rmdir Midia
 tree
@@ -45,3 +51,6 @@ mv
 rename
 import
 tree
+stat relatorio.txt
+stat arqteste.txt
+stat arqteste2.txt

@@ -24,12 +24,17 @@ typedef struct {
     time_t criado;
     time_t modificado;
     time_t acessado;
-    int pai; 
+
+    int pai;
+    int paiOriginal;
+
 } Inode;
 
 // Ajuste o protótipo (remove o nome)
 int criarInode(Inode tabela[], TipoInode tipo, int pai);
 
 void removerInode(Inode tabela[], int id);
+
+void exibirInfosInode(Inode tabela[], int id);
 
 #endif

@@ -1,5 +1,9 @@
 #include <stdio.h>
-#include "sistemaDeArquivos.h"
+#include <unistd.h>
+#include <string.h>
+#include "headers/sistemaDeArquivos.h"
+
+extern int modo_verboso;
 
 void configurarSistema(SistemaDeArquivos *fs);
 void terminal(SistemaDeArquivos *fs, FILE *input);
@@ -69,26 +73,40 @@ void configurarSistema(SistemaDeArquivos *fs){
     printf("\nSistema inicializado com sucesso!\n");
     printf("Digite 'help' para listar os comandos.\n\n");
 }
-
-#include <string.h>
-
 void terminal(SistemaDeArquivos *fs, FILE *input){
+    
     char linha[256];
+    int modo_interativo = isatty(fileno(input));
+
     while(1){
-       char caminho[256];
+        char caminho[256];
         obterCaminho(fs, caminho);
+        
         printf("\033[1;32musuario@fs\033[0m:\033[1;34m%s$\033[0m ", caminho);
-        if (fgets(linha, sizeof(linha), input) == NULL)
-        break;
+        
+        if (fgets(linha, sizeof(linha), input) == NULL) {
+            if (!modo_interativo) printf("\n");
+            break;
+        }
+            
+        if (!modo_interativo) {
+            printf("%s", linha); 
+            if (linha[strlen(linha) - 1] != '\n') {
+                printf("\n");
+            }
+        }
+
         linha[strcspn(linha, "\n")] = '\0';
         char *cmd = strtok(linha, " ");
         if (!cmd)
             continue;
+            
         if(strcmp(cmd,"exit")==0)
             break;
+            
         else if(strcmp(cmd,"help")==0){
-            printf("\n");
-            printf("help\n");
+            printf("\nhelp\n");
+            printf("stat <nome>\n");
             printf("mkdir <nome>\n");
             printf("rmdir <nome>\n");
             printf("ls\n");
@@ -101,13 +119,38 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             printf("mv <arquivo> <destino>\n");
             printf("cat <arquivo>\n");
             printf("import <arquivo_simulado> <arquivo_real>\n");
+            printf("verbose <on/off>\n");
+            printf("map\n");
+            printf("rmt <arquivo>\n");
+            printf("restore <arquivo>\n");
             printf("exit\n\n");
         }
+        // ==========================================================
+        else if(strcmp(cmd,"verbose")==0){
+            char *opcao = strtok(NULL, " ");
+            if(opcao == NULL){
+                printf("Uso: verbose <on/off>\n");
+                continue;
+            }
+            if(strcmp(opcao, "on") == 0){
+                modo_verboso = 1;
+                printf("Modo verboso ATIVADO. Operacoes internas do i-node/blocos serao listadas.\n");
+            } else if(strcmp(opcao, "off") == 0){
+                modo_verboso = 0;
+                printf("Modo verboso DESATIVADO.\n");
+            } else {
+                printf("Opcao invalida. Use 'verbose on' ou 'verbose off'.\n");
+            }
+        }
+
+        else if(strcmp(cmd,"map")==0){
+            exibirMapeamentoBlocos(fs);
+        }
+        // ==========================================================
 
         else if(strcmp(cmd,"mkdir")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: mkdir <nome>\n");
                 continue;
             }
@@ -118,14 +161,12 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             pwd(fs);
         }
 
-        else if(strcmp(cmd,"rmdir")==0)
-        {
+        else if(strcmp(cmd,"rmdir")==0) {
             char *nome = strtok(NULL," ");
             if(nome == NULL){
                 printf("Uso: rmdir <nome>\n");
                 continue;
             }
-
             removerDiretorio(fs,nome);
         }
 
@@ -138,10 +179,25 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
             criarArquivo(fs,nome);
         }
 
+        else if(strcmp(cmd,"stat")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: stat <nome>\n");
+                continue;
+            }
+
+            int id = buscarInodePorNome(fs->inodes, nome);
+
+            if (id != -1) {
+                exibirInfosInode(fs->inodes, id); 
+            } else {
+                printf("Erro: Arquivo ou diretório '%s' não encontrado.\n", nome);
+            }
+        }
+
         else if(strcmp(cmd,"rm")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: rm <arquivo>\n");
                 continue;
             }
@@ -167,8 +223,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
 
         else if(strcmp(cmd,"cat")==0){
             char *nome = strtok(NULL," ");
-            if(nome == NULL)
-            {
+            if(nome == NULL) {
                 printf("Uso: cat <arquivo>\n");
                 continue;
             }
@@ -188,8 +243,7 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
         else if(strcmp(cmd,"mv")==0){
             char *arquivo = strtok(NULL," ");
             char *destino = strtok(NULL," ");
-            if(arquivo==NULL || destino==NULL)
-            {
+            if(arquivo==NULL || destino==NULL) {
                 printf("Uso: mv <arquivo> <destino>\n");
                 continue;
             }
@@ -203,8 +257,25 @@ void terminal(SistemaDeArquivos *fs, FILE *input){
                 printf("Uso: import <arquivo_simulado> <arquivo_real>\n");
                 continue;
             }
-
             importarArquivo(fs,arquivo,real);
+        }
+
+        else if(strcmp(cmd,"rmt")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: rmt <arquivo>\n");
+                continue;
+            }
+            apagarDaLixeira(fs,nome);
+        }
+
+        else if(strcmp(cmd,"restore")==0){
+            char *nome = strtok(NULL," ");
+            if(nome == NULL) {
+                printf("Uso: restore <arquivo>\n");
+                continue;
+            }
+            restaurarDaLixeira(fs,nome);
         }
 
         else{
