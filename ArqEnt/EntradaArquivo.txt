@@ -28,8 +28,8 @@ ls
 touch relatorio.txt
 touch arqteste.txt
 touch arqteste2.txt
-import arqteste.txt texto.txt
-import arqteste2.txt texto.txt
+import arqteste.txt AqrImport/texto.txt
+import arqteste2.txt AqrImport/texto.txt
 ls
 cd ..
 rmdir Midia
@@ -51,6 +51,7 @@ mv
 rename
 import
 tree
+cd projetos
 stat relatorio.txt
 stat arqteste.txt
 stat arqteste2.txt
